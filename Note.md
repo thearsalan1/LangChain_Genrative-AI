@@ -1537,3 +1537,445 @@ Streaming allows the response to appear progressively, improving the experience.
 - **Cancellation:** Allow users to stop generation to avoid unnecessary cost.
 - **Backpressure:** Ensure the backend and frontend can handle chunks at the required speed.
 - **Authentication:** Protect streaming endpoints just like normal API endpoints.
+
+---
+
+# Working Chatbot Backend with Groq, Express, TypeScript, and SSE
+
+This section builds a working streaming chatbot backend using:
+
+- Node.js.
+- Express.
+- TypeScript.
+- Groq SDK.
+- Zod.
+- Dotenv.
+- Server-Sent Events (SSE).
+
+This backend:
+
+1. Accepts a user message.
+2. Receives a `sessionId`.
+3. Retrieves the conversation history for that session.
+4. Sends the history and the new message to Groq.
+5. Streams the assistant response chunk by chunk.
+6. Sends each chunk to the client using SSE.
+7. Stores the completed user and assistant messages in session history.
+
+---
+
+---
+
+# Working Streaming Chatbot Backend
+
+## Folder Structure
+
+```text
+src/
+├── app.ts
+├── server.ts
+├── config/
+│   └── env.ts
+├── constants/
+│   └── prompts.ts
+├── controller/
+│   └── chatController.ts
+├── routes/
+│   └── chatRoutes.ts
+├── services/
+│   └── chatService.ts
+├── store/
+│   └── sessionStore.ts
+└── types/
+    └── types.ts
+```
+
+## Install Dependencies
+
+```bash
+npm install express groq-sdk dotenv zod
+npm install -D typescript tsx @types/express @types/node
+```
+
+## `.env`
+
+```env
+GROQ_API_KEY=your_groq_api_key_here
+PORT=3000
+```
+
+> Never push `.env` to GitHub.
+
+## `.gitignore`
+
+```gitignore
+node_modules
+dist
+.env
+```
+
+## `src/types/types.ts`
+
+```typescript
+export type MessageRole = "system" | "user" | "assistant";
+
+export interface ChatMessage {
+  role: MessageRole;
+  content: string;
+}
+
+export interface ChatRequestBody {
+  message: string;
+  sessionId: string;
+}
+```
+
+**Purpose:** Shared TypeScript types for chat messages and request body.
+
+## `src/config/env.ts`
+
+```typescript
+import dotenv from "dotenv";
+import { z } from "zod";
+
+dotenv.config();
+
+const envSchema = z.object({
+  GROQ_API_KEY: z.string().min(1, "GROQ_API_KEY is required"),
+  PORT: z.coerce.number().int().positive().default(3000),
+});
+
+const parsedEnv = envSchema.safeParse(process.env);
+
+if (!parsedEnv.success) {
+  console.error(
+    "Invalid environment variables:",
+    parsedEnv.error.flatten().fieldErrors
+  );
+
+  process.exit(1);
+}
+
+export const env = parsedEnv.data;
+```
+
+**Purpose:** Loads `.env` and validates API key and port.
+
+## `src/constants/prompts.ts`
+
+```typescript
+export const SYSTEM_PROMPT = `
+You are a helpful and patient teacher.
+
+Help students understand concepts clearly.
+Use simple language and examples where helpful.
+If the question is unclear, ask a clarification question.
+Do not invent facts when you are unsure.
+`;
+```
+
+**Purpose:** Stores the chatbot’s system prompt separately.
+
+## `src/store/sessionStore.ts`
+
+```typescript
+import type { ChatMessage } from "../types/types.js";
+
+const sessionHistories = new Map<string, ChatMessage[]>();
+
+const MAX_HISTORY_MESSAGES = 20;
+
+export function getSessionHistory(
+  sessionId: string
+): ChatMessage[] {
+  const history = sessionHistories.get(sessionId);
+
+  if (history) {
+    return history;
+  }
+
+  const newHistory: ChatMessage[] = [];
+
+  sessionHistories.set(sessionId, newHistory);
+
+  return newHistory;
+}
+
+export function saveMessages(
+  sessionId: string,
+  messages: ChatMessage[]
+): void {
+  const history = getSessionHistory(sessionId);
+
+  history.push(...messages);
+
+  if (history.length > MAX_HISTORY_MESSAGES) {
+    history.splice(0, history.length - MAX_HISTORY_MESSAGES);
+  }
+}
+```
+
+**Purpose:** Stores conversation history separately for every `sessionId`.
+
+> This uses `Map`, so history is lost when the server restarts. Later, replace it with Redis or PostgreSQL for production.
+
+## `src/services/chatService.ts`
+
+```typescript
+import Groq from "groq-sdk";
+import { env } from "../config/env.js";
+import { SYSTEM_PROMPT } from "../constants/prompts.js";
+import type { ChatMessage } from "../types/types.js";
+
+const groq = new Groq({
+  apiKey: env.GROQ_API_KEY,
+});
+
+const MODEL_NAME = "openai/gpt-oss-20b";
+
+export async function* streamChatResponse(
+  history: ChatMessage[],
+  userMessage: string
+): AsyncGenerator<string, void, void> {
+  const messages: ChatMessage[] = [
+    {
+      role: "system",
+      content: SYSTEM_PROMPT,
+    },
+    ...history,
+    {
+      role: "user",
+      content: userMessage,
+    },
+  ];
+
+  const stream = await groq.chat.completions.create({
+    model: MODEL_NAME,
+    messages,
+    temperature: 0.7,
+    stream: true,
+  });
+
+  for await (const chunk of stream) {
+    const content = chunk.choices?.delta?.content ?? "";
+
+    if (content) {
+      yield content;
+    }
+  }
+}
+```
+
+**Purpose:** Sends system prompt + session history + new message to Groq, then yields text chunks.
+
+## `src/controller/chatController.ts`
+
+```typescript
+import type { Request, Response } from "express";
+import { streamChatResponse } from "../services/chatService.js";
+import {
+  getSessionHistory,
+  saveMessages,
+} from "../store/sessionStore.js";
+import type {
+  ChatMessage,
+  ChatRequestBody,
+} from "../types/types.js";
+
+function sendSseEvent(res: Response, data: unknown): void {
+  res.write(`data: ${JSON.stringify(data)}\n\n`);
+}
+
+export async function chatStream(
+  req: Request<{}, {}, ChatRequestBody>,
+  res: Response
+): Promise<void> {
+  const { message, sessionId } = req.body;
+
+  if (
+    typeof message !== "string" ||
+    message.trim().length === 0
+  ) {
+    res.status(400).json({
+      error: "Message is required and must be a non-empty string",
+    });
+
+    return;
+  }
+
+  if (
+    typeof sessionId !== "string" ||
+    sessionId.trim().length === 0
+  ) {
+    res.status(400).json({
+      error: "sessionId is required and must be a non-empty string",
+    });
+
+    return;
+  }
+
+  const history = getSessionHistory(sessionId);
+
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
+
+  let assistantResponse = "";
+
+  try {
+    for await (
+      const chunk of streamChatResponse(
+        history,
+        message.trim()
+      )
+    ) {
+      assistantResponse += chunk;
+
+      sendSseEvent(res, {
+        text: chunk,
+      });
+    }
+
+    const messages: ChatMessage[] = [
+      {
+        role: "user",
+        content: message.trim(),
+      },
+      {
+        role: "assistant",
+        content: assistantResponse,
+      },
+    ];
+
+    saveMessages(sessionId, messages);
+
+    sendSseEvent(res, {
+      done: true,
+    });
+
+    res.end();
+  } catch (error) {
+    console.error("Streaming error:", error);
+
+    sendSseEvent(res, {
+      error: "Something went wrong while generating the response",
+    });
+
+    res.end();
+  }
+}
+```
+
+**Purpose:** Validates request, gets the correct session history, streams response through SSE, and saves the completed chat.
+
+> Important fix: use `streamChatResponse(history, message)`, not a global `conversation` array. Otherwise, every session loses its previous chat context.
+
+## `src/routes/chatRoutes.ts`
+
+```typescript
+import { Router } from "express";
+import { chatStream } from "../controller/chatController.js";
+
+const router = Router();
+
+router.post("/chat-stream", chatStream);
+
+export default router;
+```
+
+**Purpose:** Creates this endpoint:
+
+```text
+POST /api/chat-stream
+```
+
+## `src/app.ts`
+
+```typescript
+import express from "express";
+import chatRoutes from "./routes/chatRoutes.js";
+
+const app = express();
+
+app.use(express.json());
+
+app.get("/health", (_req, res) => {
+  res.json({
+    status: "ok",
+  });
+});
+
+app.use("/api", chatRoutes);
+
+export default app;
+```
+
+**Purpose:** Configures Express, JSON parsing, health route, and API routes.
+
+## `src/server.ts`
+
+```typescript
+import app from "./app.js";
+import { env } from "./config/env.js";
+
+app.listen(env.PORT, () => {
+  console.log(
+    `Server running on http://localhost:${env.PORT}`
+  );
+});
+```
+
+**Purpose:** Starts the server.
+
+## Run the Project
+
+```bash
+npm run dev
+```
+
+Add this in `package.json`:
+
+```json
+{
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js"
+  }
+}
+```
+
+## Test the Endpoint
+
+```http
+POST http://localhost:3000/api/chat-stream
+Content-Type: application/json
+```
+
+```json
+{
+  "message": "Explain JavaScript closures simply",
+  "sessionId": "student-1"
+}
+```
+
+## Final Flow
+
+```text
+POST /api/chat-stream
+        ↓
+chatRoutes.ts
+        ↓
+chatController.ts
+        ↓
+sessionStore.ts gets history
+        ↓
+chatService.ts calls Groq
+        ↓
+Groq streams text chunks
+        ↓
+Controller sends SSE events
+        ↓
+User and assistant messages are saved
+```
