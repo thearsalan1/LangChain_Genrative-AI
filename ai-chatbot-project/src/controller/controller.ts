@@ -2,7 +2,6 @@ import type { Request, Response } from "express";
 import { type ChatMessage } from "../types/types.js";
 import { streamChatRespones } from "../services/chatService.js";
 
-const conversation: ChatMessage[] = [];
 const sessionHistories = new Map<string, ChatMessage[]>();
 
 export const getSessionHistory = (sessionId: string): ChatMessage[] => {
@@ -25,7 +24,7 @@ export const chatStream = async (req: Request, res: Response) => {
   res.setHeader("Connection", "keep-alive");
   try {
     let assistantResponse = "";
-    for await (const chunk of streamChatRespones(conversation, message)) {
+    for await (const chunk of streamChatRespones(history, message)) {
       assistantResponse += chunk;
       res.write(`data: ${JSON.stringify({ text: chunk })}\n\n`);
     }
