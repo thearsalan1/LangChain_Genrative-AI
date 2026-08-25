@@ -1,160 +1,236 @@
-LangChain.js Learning Notes --- Phase 1 & Phase 2
+# LangChain.js Learning Notes --- Phase 1 & Phase 2
+
 > **Goal:** Learn LangChain.js from fundamentals to production-oriented
 > AI application development.
-Navigation
-Phase 1 --- LangChain.js
-Fundamentals
-Lesson 1.1 --- What Is
-LangChain?
-Lesson 1.2 --- Models
-Lesson 1.3 --- Messages Deep
-Dive
-Lesson 1.4 --- Prompt Templates
-Complete Chatbot Using
-LangChain
-Lesson 1.5 --- Output Parsers
-Lesson 1.6 --- Runnables / LCEL
-Project 1 --- AI Job Description
-Generator
-Architecture
-Installation
-Environment Configuration
-Prompt Layer
-Schema Layer
-Chain Layer
-Service Layer
-Controller Layer
-Route Layer
-Logger
-Express Application
-Server Entry Point
-Complete Request Flow
-Why This Is a Sequential
-Workflow
-Why SSE Is Used
-What This Project Teaches
-Production Notes
-Phase 2 --- Chains & Workflows
-Lesson 2.1 --- Sequential, Parallel, Conditional
-Workflows
-Chain vs Agent
-Phase 2 Learning Summary
----
-Phase 1 --- LangChain.js Fundamentals
+
+## Navigation
+
+-   [Phase 1 --- LangChain.js
+    Fundamentals](#phase-1--langchainjs-fundamentals)
+    -   [Lesson 1.1 --- What Is
+        LangChain?](#lesson-11--what-is-langchain)
+    -   [Lesson 1.2 --- Models](#lesson-12--models)
+    -   [Lesson 1.3 --- Messages Deep
+        Dive](#lesson-13--messages-deep-dive)
+    -   [Lesson 1.4 --- Prompt Templates](#lesson-14--prompt-templates)
+    -   [Complete Chatbot Using
+        LangChain](#complete-chatbot-using-langchain)
+    -   [Lesson 1.5 --- Output Parsers](#lesson-15--output-parsers)
+    -   [Lesson 1.6 --- Runnables / LCEL](#lesson-16--runnables--lcel)
+-   [Project 1 --- AI Job Description
+    Generator](#project-1--ai-job-description-generator)
+    -   [Architecture](#project-architecture)
+    -   [Installation](#1-installation)
+    -   [Environment Configuration](#2-environment-configuration)
+    -   [Prompt Layer](#3-prompt-layer)
+    -   [Schema Layer](#4-schema-layer)
+    -   [Chain Layer](#5-chain-layer)
+    -   [Service Layer](#6-service-layer)
+    -   [Controller Layer](#7-controller-layer)
+    -   [Route Layer](#8-route-layer)
+    -   [Logger](#9-logger)
+    -   [Express Application](#10-express-application)
+    -   [Server Entry Point](#11-server-entry-point)
+    -   [Complete Request Flow](#12-complete-request-flow)
+    -   [Why This Is a Sequential
+        Workflow](#13-why-this-is-a-sequential-workflow)
+    -   [Why SSE Is Used](#14-why-sse-is-used)
+    -   [What This Project Teaches](#16-what-this-project-teaches)
+    -   [Production Notes](#17-production-notes)
+-   [Phase 2 --- Chains & Workflows](#phase-2--chains--workflows)
+    -   [Lesson 2.1 --- Sequential, Parallel, Conditional
+        Workflows](#lesson-21--sequential-parallel-conditional-workflows)
+    -   [Chain vs Agent](#7-chain-vs-agent)
+    -   [Phase 2 Learning Summary](#phase-2-learning-summary)
+-   [Project 2 --- AI Research & Content Pipeline](#project-2--ai-research--content-pipeline)
+    -   [Architecture](#3-complete-project-architecture)
+    -   [Environment Configuration](#4-environment-configuration)
+    -   [Schema Layer](#6-schema-layer)
+    -   [Prompt Layer](#7-prompt-layer)
+    -   [Chain Layer](#8-chain-layer)
+    -   [Service Layer](#11-service-layer)
+    -   [Route Layer](#17-route-layer)
+    -   [Complete Workflow](#21-complete-http-request-flow)
+    -   [Production Improvements](#29-production-improvements)
+
+------------------------------------------------------------------------
+
+# Phase 1 --- LangChain.js Fundamentals
+
 > **Goal:** Learn LangChain.js from the fundamentals to
 > production-oriented usage.
+
 In Phase 0, we built a chatbot using the raw Groq SDK.
-In Phase 1, we will use the same concepts through LangChain.js's
-unified abstractions.
----
-Lesson 1.1 --- What Is LangChain?
-1. Simple Explanation
+
+In Phase 1, we will use the same concepts through **LangChain.js's
+unified abstractions**.
+
+------------------------------------------------------------------------
+
+# Lesson 1.1 --- What Is LangChain?
+
+## 1. Simple Explanation
+
 In Project 0, we manually handled several things:
-Initialized the Groq client.
-Created arrays containing system instructions, conversation history,
-and user messages.
-Wrote the streaming loop ourselves.
-Extracted text from provider-specific Groq chunks:
+
+-   Initialized the Groq client.
+-   Created arrays containing system instructions, conversation history,
+    and user messages.
+-   Wrote the streaming loop ourselves.
+-   Extracted text from provider-specific Groq chunks:
+
 ``` typescript
 chunk.choices?.delta?.content ?? "";
 ```
+
 The problem becomes more obvious when we want to switch providers.
+
 For example, if we move from:
+
 ``` text
 Groq
 ```
+
 to:
+
 ``` text
 OpenAI
 Gemini
 Anthropic
 Local Models
 ```
+
 the raw SDK approach may require changes to imports, configuration,
 request formats, and response handling.
-LangChain.js
-LangChain.js is an abstraction layer that provides common interfaces
+
+### LangChain.js
+
+**LangChain.js is an abstraction layer that provides common interfaces
 for working with different LLM providers and AI application
-components.
+components.**
+
 For example:
+
 ``` typescript
 await model.invoke("Hello");
 
 await model.stream("Hello");
 ```
+
 The calling pattern is largely consistent even when the underlying
 provider changes.
-This does not mean that every provider behaves identically. Provider
+
+This does **not** mean that every provider behaves identically. Provider
 capabilities, model quality, pricing, tool support, and response
 behavior can still differ.
----
-2. Real-World Analogy
-Think of LangChain like Prisma.
+
+------------------------------------------------------------------------
+
+## 2. Real-World Analogy
+
+Think of LangChain like **Prisma**.
+
 Prisma abstracts differences between databases:
+
 ``` text
 PostgreSQL → MySQL → SQLite
 ```
+
 Similarly, LangChain abstracts many differences between LLM providers:
+
 ``` text
 Groq → OpenAI → Anthropic → Gemini
 ```
+
 However, LangChain is much more than a provider abstraction.
+
 It also provides reusable building blocks for:
-Prompts
-Messages
-Models
-Runnables
-Chains
-Output parsing
-Tools
-Agents
-Retrievers
-RAG
-Multi-step AI workflows
----
-3. Why LangChain Exists
+
+-   Prompts
+-   Messages
+-   Models
+-   Runnables
+-   Chains
+-   Output parsing
+-   Tools
+-   Agents
+-   Retrievers
+-   RAG
+-   Multi-step AI workflows
+
+------------------------------------------------------------------------
+
+## 3. Why LangChain Exists
+
 LangChain provides abstractions for:
-Provider Abstraction
+
+### Provider Abstraction
+
 A common programming pattern across different model providers.
-Messages
+
+### Messages
+
 Built-in message types such as:
+
 ``` typescript
 SystemMessage
 HumanMessage
 AIMessage
 ToolMessage
 ```
-Prompt Templates
+
+### Prompt Templates
+
 Reusable prompts containing dynamic variables.
-Streaming
+
+### Streaming
+
 A common:
+
 ``` typescript
 .stream()
 ```
+
 interface.
-Structured Output
+
+### Structured Output
+
 Better patterns for obtaining validated structured data from models.
-Runnables / LCEL
+
+### Runnables / LCEL
+
 A way to connect AI components into pipelines.
-Tools and Agents
+
+### Tools and Agents
+
 Building function-calling and multi-step workflows.
-RAG
+
+### RAG
+
 Integrations for:
-Document loaders
-Vector stores
-Retrievers
-Retrieval pipelines
----
-4. When Not to Use LangChain
-LangChain is not mandatory for every AI project.
+
+-   Document loaders
+-   Vector stores
+-   Retrievers
+-   Retrieval pipelines
+
+------------------------------------------------------------------------
+
+## 4. When Not to Use LangChain
+
+LangChain is **not mandatory for every AI project**.
+
 A raw provider SDK can be better when:
-You only need one simple LLM call.
-You need a provider-specific feature that LangChain does not expose
-properly.
-You want minimal dependencies.
-You are building an extremely latency-sensitive serverless function.
-You want debugging to stay as direct as possible.
+
+-   You only need one simple LLM call.
+-   You need a provider-specific feature that LangChain does not expose
+    properly.
+-   You want minimal dependencies.
+-   You are building an extremely latency-sensitive serverless function.
+-   You want debugging to stay as direct as possible.
+
 A simple rule:
+
 ``` text
 Simple one-call chatbot
         ↓
@@ -164,30 +240,47 @@ RAG + tools + prompts + multi-step workflow
         ↓
 LangChain becomes much more useful
 ```
----
-5. Direct SDK vs LangChain
----
-Aspect      Direct SDK                   LangChain.js
----
-Provider    Provider-specific code       Usually import/class/config
-change      changes                      changes
-Simple API  Lightweight                  Additional abstraction
-call
-Streaming   Provider response format     Common `.stream()` pattern
-handled manually
-Messages    Manually manage arrays/types Built-in message classes
-Prompt      Manual template literals     `PromptTemplate` /
-templates                                `ChatPromptTemplate`
-RAG         Manually build integrations  Reusable abstractions
-Tools       Manually implement workflows Tool abstractions
-Agents      Manually implement           Agent abstractions
-Debugging   More direct                  Additional abstraction layer
+
+------------------------------------------------------------------------
+
+## 5. Direct SDK vs LangChain
+
+  ---------------------------------------------------------------------
+  Aspect      Direct SDK                   LangChain.js
+  ----------- ---------------------------- ----------------------------
+  Provider    Provider-specific code       Usually import/class/config
+  change      changes                      changes
+
+  Simple API  Lightweight                  Additional abstraction
+  call                                     
+
+  Streaming   Provider response format     Common `.stream()` pattern
+              handled manually             
+
+  Messages    Manually manage arrays/types Built-in message classes
+
+  Prompt      Manual template literals     `PromptTemplate` /
+  templates                                `ChatPromptTemplate`
+
+  RAG         Manually build integrations  Reusable abstractions
+
+  Tools       Manually implement workflows Tool abstractions
+
+  Agents      Manually implement           Agent abstractions
+
+  Debugging   More direct                  Additional abstraction layer
+  ---------------------------------------------------------------------
+
 > **Important:** LangChain makes provider switching easier, but it does
 > **not** guarantee identical model quality, pricing, tool behavior,
 > latency, or provider-specific capabilities.
----
-6. LangChain Building Blocks
+
+------------------------------------------------------------------------
+
+## 6. LangChain Building Blocks
+
 A simplified picture of the LangChain ecosystem:
+
 ``` text
 Chat Models
     ↓
@@ -217,40 +310,55 @@ Tools / Agents
     ↓
 Perform actions and execute multi-step workflows
 ```
----
-7. Common Mistakes
+
+------------------------------------------------------------------------
+
+## 7. Common Mistakes
+
 Avoid these mistakes:
-Using LangChain for every simple task.
-Treating LangChain as magic without understanding raw LLM concepts.
-Copying old tutorials without checking the installed LangChain
-version.
-Assuming provider switching is completely risk-free.
-Avoiding raw SDKs unnecessarily.
-Assuming every LangChain provider integration supports exactly the
-same features.
----
-8. Production Notes
+
+-   Using LangChain for every simple task.
+-   Treating LangChain as magic without understanding raw LLM concepts.
+-   Copying old tutorials without checking the installed LangChain
+    version.
+-   Assuming provider switching is completely risk-free.
+-   Avoiding raw SDKs unnecessarily.
+-   Assuming every LangChain provider integration supports exactly the
+    same features.
+
+------------------------------------------------------------------------
+
+## 8. Production Notes
+
 For production applications:
-Pin your LangChain versions.
-Centralize model and provider configuration.
-Keep prompts organized instead of scattering them throughout
-controllers.
-Test model output quality before implementing provider fallbacks.
-Keep a raw SDK escape hatch when a provider-specific feature is
-important.
-Evaluate dependency size and cold-start impact in serverless
-environments.
-Add proper error handling around model calls.
----
-Lesson 1.2 --- Models
-1. Simple Explanation
+
+-   Pin your LangChain versions.
+-   Centralize model and provider configuration.
+-   Keep prompts organized instead of scattering them throughout
+    controllers.
+-   Test model output quality before implementing provider fallbacks.
+-   Keep a raw SDK escape hatch when a provider-specific feature is
+    important.
+-   Evaluate dependency size and cold-start impact in serverless
+    environments.
+-   Add proper error handling around model calls.
+
+------------------------------------------------------------------------
+
+# Lesson 1.2 --- Models
+
+## 1. Simple Explanation
+
 In Project 0, we used the Groq-specific client:
+
 ``` typescript
 const groq = new Groq({
   apiKey: env.GROQ_API_KEY,
 });
 ```
+
 With LangChain, we use a chat-model class:
+
 ``` typescript
 const model = new ChatGroq({
   apiKey: env.GROQ_API_KEY,
@@ -258,33 +366,49 @@ const model = new ChatGroq({
   temperature: 0.7,
 });
 ```
-The important idea is that the application interacts with a model
-abstraction instead of directly handling the provider's low-level API.
+
+The important idea is that the application interacts with a **model
+abstraction** instead of directly handling the provider's low-level API.
+
 Common methods include:
+
 ``` typescript
 await model.invoke(...);
 
 await model.stream(...);
 ```
----
-2. Installation
+
+------------------------------------------------------------------------
+
+## 2. Installation
+
 Install LangChain Core and the Groq integration:
+
 ``` bash
 npm install @langchain/core @langchain/groq
 ```
+
 If OpenAI is needed later:
+
 ``` bash
 npm install @langchain/openai
 ```
----
-Package               Purpose
----
-`@langchain/core`     Messages, prompts, runnables, and core
-abstractions
-`@langchain/groq`     Groq integration
-`@langchain/openai`   OpenAI integration
----
-3. Basic Initialization
+
+  ----------------------------------------------------------------------
+  Package               Purpose
+  --------------------- ------------------------------------------------
+  `@langchain/core`     Messages, prompts, runnables, and core
+                        abstractions
+
+  `@langchain/groq`     Groq integration
+
+  `@langchain/openai`   OpenAI integration
+  ----------------------------------------------------------------------
+
+------------------------------------------------------------------------
+
+## 3. Basic Initialization
+
 ``` typescript
 import { ChatGroq } from "@langchain/groq";
 import { env } from "../config/env.js";
@@ -296,14 +420,20 @@ export const model = new ChatGroq({
   maxTokens: 300,
 });
 ```
-Important parameters
-`apiKey` --- authenticates with the provider.
-`model` --- selects the model.
-`temperature` --- controls randomness.
-`maxTokens` --- limits generated output.
----
-4. Non-Streaming: `.invoke()`
+
+### Important parameters
+
+-   `apiKey` --- authenticates with the provider.
+-   `model` --- selects the model.
+-   `temperature` --- controls randomness.
+-   `maxTokens` --- limits generated output.
+
+------------------------------------------------------------------------
+
+## 4. Non-Streaming: `.invoke()`
+
 Use `.invoke()` when you want the complete response.
+
 ``` typescript
 const response = await model.invoke(
   "Explain JavaScript closures in 2 lines."
@@ -311,19 +441,29 @@ const response = await model.invoke(
 
 console.log(response.content);
 ```
+
 The important point:
+
 ``` typescript
 response
 ```
+
 is an `AIMessage`, not simply a string.
+
 Therefore:
+
 ``` typescript
 console.log(response.content);
 ```
+
 is used to access the generated content.
----
-5. Streaming: `.stream()`
+
+------------------------------------------------------------------------
+
+## 5. Streaming: `.stream()`
+
 Use `.stream()` when you want the response incrementally.
+
 ``` typescript
 const stream = await model.stream(
   "Explain JavaScript closures in 2 lines."
@@ -337,21 +477,32 @@ for await (const chunk of stream) {
   }
 }
 ```
-Raw Groq SDK
+
+### Raw Groq SDK
+
 Previously, we had to access provider-specific data:
+
 ``` typescript
 chunk.choices?.delta?.content ?? "";
 ```
-LangChain
+
+### LangChain
+
 We can use:
+
 ``` typescript
 chunk.content;
 ```
+
 LangChain normalizes provider response formats into its message/chunk
 abstractions.
----
-6. Switching Providers
+
+------------------------------------------------------------------------
+
+## 6. Switching Providers
+
 For example, with OpenAI:
+
 ``` typescript
 import { ChatOpenAI } from "@langchain/openai";
 import { env } from "../config/env.js";
@@ -362,16 +513,23 @@ const model = new ChatOpenAI({
   temperature: 0.7,
 });
 ```
+
 The calling pattern remains similar:
+
 ``` typescript
 await model.invoke("Hello");
 
 await model.stream("Hello");
 ```
+
 This is one of the main benefits of using an abstraction layer.
----
-7. Model Fallbacks
+
+------------------------------------------------------------------------
+
+## 7. Model Fallbacks
+
 A production application can have a primary and backup model.
+
 ``` typescript
 const primaryModel = new ChatGroq({
   apiKey: env.GROQ_API_KEY,
@@ -390,37 +548,55 @@ const response = await modelWithFallback.invoke(
   "Explain closures simply."
 );
 ```
+
 The fallback helps when the primary model call fails.
-However, fallback does not fix:
-Bad prompts.
-Incorrect application logic.
-Poor model quality.
-Unsafe tool behavior.
-Incorrect business logic.
-Fallback is primarily a reliability mechanism, not a quality
+
+However, fallback does **not** fix:
+
+-   Bad prompts.
+-   Incorrect application logic.
+-   Poor model quality.
+-   Unsafe tool behavior.
+-   Incorrect business logic.
+
+Fallback is primarily a **reliability mechanism**, not a quality
 guarantee.
----
-8. Common Mistakes
+
+------------------------------------------------------------------------
+
+## 8. Common Mistakes
+
 Avoid:
-Treating `response` as a string instead of using `response.content`.
-Assuming every stream chunk contains text.
-Forgetting to install `@langchain/core`.
-Using model fallbacks without testing quality differences.
-Assuming every provider supports every LangChain feature
-identically.
----
-Lesson 1.3 --- Messages Deep Dive
-1. What Are Messages?
+
+-   Treating `response` as a string instead of using `response.content`.
+-   Assuming every stream chunk contains text.
+-   Forgetting to install `@langchain/core`.
+-   Using model fallbacks without testing quality differences.
+-   Assuming every provider supports every LangChain feature
+    identically.
+
+------------------------------------------------------------------------
+
+# Lesson 1.3 --- Messages Deep Dive
+
+## 1. What Are Messages?
+
 LangChain messages are more than simple text containers.
+
 A message can contain:
-`content` --- actual message content.
-`id` --- message identifier.
-`usage\\\_metadata` --- token usage information.
-`response\\\_metadata` --- provider-specific information.
-`tool\\\_calls` --- tool calls requested by the model.
----
-2. Message Types
+
+-   `content` --- actual message content.
+-   `id` --- message identifier.
+-   `usage\\\_metadata` --- token usage information.
+-   `response\\\_metadata` --- provider-specific information.
+-   `tool\\\_calls` --- tool calls requested by the model.
+
+------------------------------------------------------------------------
+
+## 2. Message Types
+
 Import the common message classes:
+
 ``` typescript
 import {
   SystemMessage,
@@ -429,13 +605,16 @@ import {
   ToolMessage,
 } from "@langchain/core/messages";
 ```
-Message           Purpose
----
-`SystemMessage`   Developer instructions and behavior rules
-`HumanMessage`    User input
-`AIMessage`       Model response
-`ToolMessage`     Result returned from a tool
+
+  Message           Purpose
+  ----------------- -------------------------------------------
+  `SystemMessage`   Developer instructions and behavior rules
+  `HumanMessage`    User input
+  `AIMessage`       Model response
+  `ToolMessage`     Result returned from a tool
+
 Example:
+
 ``` typescript
 const messages = [
   new SystemMessage("You are a helpful teacher."),
@@ -445,7 +624,9 @@ const messages = [
   ),
 ];
 ```
+
 Conceptually:
+
 ``` text
 SystemMessage
       ↓
@@ -463,9 +644,13 @@ ToolMessage
       ↓
 Tool execution result
 ```
----
-3. Response Metadata
+
+------------------------------------------------------------------------
+
+## 3. Response Metadata
+
 Example:
+
 ``` typescript
 const response = await model.invoke(
   "Explain closures."
@@ -476,13 +661,18 @@ console.log(response.id);
 console.log(response.usage_metadata);
 console.log(response.response_metadata);
 ```
+
 Remember:
+
 ``` typescript
 response.content
 ```
-contains the content of one response message, not the entire
+
+contains the content of **one response message**, not the entire
 conversation.
+
 Token usage may look like:
+
 ``` typescript
 {
   input_tokens: 45,
@@ -490,16 +680,23 @@ Token usage may look like:
   total_tokens: 165
 }
 ```
+
 Token metadata is useful for:
-Cost tracking.
-Monitoring.
-Usage analytics.
-Debugging.
----
-4. Serialize Messages for a Database
+
+-   Cost tracking.
+-   Monitoring.
+-   Usage analytics.
+-   Debugging.
+
+------------------------------------------------------------------------
+
+## 4. Serialize Messages for a Database
+
 Do not use LangChain class instances directly as your database storage
 format.
+
 Instead, convert them into plain objects.
+
 ``` typescript
 import type { BaseMessage } from "@langchain/core/messages";
 
@@ -512,13 +709,17 @@ export function serializeMessage(
   };
 }
 ```
+
 Then:
+
 ``` typescript
 const serializedHistory = history.map(
   serializeMessage
 );
 ```
+
 Example stored data:
+
 ``` json
 [
   {
@@ -531,11 +732,16 @@ Example stored data:
   }
 ]
 ```
+
 > **Important:** LangChain internally uses `"human"` for the human
 > message role, not `"user"`.
+
 This matters when deserializing the messages later.
----
-5. Deserialize Messages
+
+------------------------------------------------------------------------
+
+## 5. Deserialize Messages
+
 ``` typescript
 import {
   AIMessage,
@@ -569,22 +775,31 @@ export function deserializeMessage(
   }
 }
 ```
+
 If the database contains:
+
 ``` json
 {
   "role": "user",
   "content": "Hello"
 }
 ```
+
 but your deserializer expects `"human"`, you can get:
+
 ``` text
 Unknown message role: user
 ```
+
 Therefore, your serialization and deserialization formats must remain
 consistent.
----
-6. ToolMessage Preview
+
+------------------------------------------------------------------------
+
+## 6. ToolMessage Preview
+
 A tool result can be represented using `ToolMessage`:
+
 ``` typescript
 import { ToolMessage } from "@langchain/core/messages";
 
@@ -596,23 +811,33 @@ const toolResult = new ToolMessage({
   tool_call_id: "call_123",
 });
 ```
+
 The:
+
 ``` typescript
 tool_call_id
 ```
+
 connects the tool result with the exact tool call that produced it.
+
 This becomes especially important when the model requests multiple
 tools.
----
-7. Production Notes
+
+------------------------------------------------------------------------
+
+## 7. Production Notes
+
 For production applications:
-Log `usage\\\_metadata` for cost tracking.
-Store a `sessionId` or `conversationId` with persisted messages.
-Validate stored roles during deserialization.
-Set message-size limits.
-Keep the system message first.
-Use a shared helper for consistently constructing messages.
+
+-   Log `usage\\\_metadata` for cost tracking.
+-   Store a `sessionId` or `conversationId` with persisted messages.
+-   Validate stored roles during deserialization.
+-   Set message-size limits.
+-   Keep the system message first.
+-   Use a shared helper for consistently constructing messages.
+
 Example:
+
 ``` typescript
 import {
   HumanMessage,
@@ -632,15 +857,22 @@ export function buildMessages(
   ];
 }
 ```
----
-Lesson 1.4 --- Prompt Templates
-1. Why Prompt Templates?
+
+------------------------------------------------------------------------
+
+# Lesson 1.4 --- Prompt Templates
+
+## 1. Why Prompt Templates?
+
 A hardcoded prompt is simple:
+
 ``` typescript
 const prompt =
   "You are a great teacher.";
 ```
+
 A dynamic prompt can be written using JavaScript template literals:
+
 ``` typescript
 const prompt = `
 Analyze this resume for ${jobRole}.
@@ -648,16 +880,22 @@ Analyze this resume for ${jobRole}.
 Candidate: ${candidateName}.
 `;
 ```
+
 This works, but as applications grow, prompts become difficult to:
-Reuse.
-Maintain.
-Test.
-Organize.
-Modify.
+
+-   Reuse.
+-   Maintain.
+-   Test.
+-   Organize.
+-   Modify.
+
 LangChain provides prompt templates so that variables can be defined
 once and supplied later.
----
-2. `PromptTemplate`
+
+------------------------------------------------------------------------
+
+## 2. `PromptTemplate`
+
 ``` typescript
 import { PromptTemplate } from "@langchain/core/prompts";
 
@@ -679,18 +917,26 @@ const prompt = await resumeTemplate.format({
 
 console.log(prompt);
 ```
+
 The placeholders:
+
 ``` text
 {jobRole}
 {candidateName}
 {resumeText}
 ```
+
 are filled when `.format()` is called.
+
 If a required variable is missing, formatting fails instead of silently
 inserting `undefined`.
----
-3. `ChatPromptTemplate`
+
+------------------------------------------------------------------------
+
+## 3. `ChatPromptTemplate`
+
 For chat applications, use `ChatPromptTemplate`.
+
 ``` typescript
 import { ChatPromptTemplate } from "@langchain/core/prompts";
 
@@ -715,14 +961,21 @@ const messages =
 
 const response = await model.invoke(messages);
 ```
+
 `formatMessages()` returns formatted LangChain message objects.
+
 This is useful because chat models work naturally with structured
 messages.
----
-4. `MessagesPlaceholder`
+
+------------------------------------------------------------------------
+
+## 4. `MessagesPlaceholder`
+
 When building chat applications, we often need to insert previous
 conversation history.
+
 `MessagesPlaceholder` is designed for this.
+
 ``` typescript
 import {
   ChatPromptTemplate,
@@ -744,7 +997,9 @@ const chatPrompt =
     ],
   ]);
 ```
+
 Then:
+
 ``` typescript
 const messages =
   await chatPrompt.formatMessages({
@@ -752,7 +1007,9 @@ const messages =
     userMessage: "Explain JavaScript closures.",
   });
 ```
+
 The final order becomes:
+
 ``` text
 System message
       ↓
@@ -760,7 +1017,9 @@ Previous conversation history
       ↓
 New user message
 ```
+
 This replaces manually writing:
+
 ``` typescript
 [
   new SystemMessage(SYSTEM_PROMPT),
@@ -768,11 +1027,16 @@ This replaces manually writing:
   new HumanMessage(userMessage),
 ];
 ```
----
-5. Few-Shot Templates
+
+------------------------------------------------------------------------
+
+## 5. Few-Shot Templates
+
 Few-shot prompting means giving the model examples of the desired
 behavior.
+
 Example:
+
 ``` typescript
 const sentimentPrompt =
   ChatPromptTemplate.fromMessages([
@@ -807,8 +1071,11 @@ const sentimentPrompt =
     ],
   ]);
 ```
+
 The model receives examples before seeing the actual input.
+
 Conceptually:
+
 ``` text
 Example 1
 Input → Output
@@ -820,12 +1087,18 @@ Actual Input
    ↓
 Expected behavior
 ```
+
 This is useful when the required behavior is easier to demonstrate than
 to describe.
----
-6. Production Prompt Structure
+
+------------------------------------------------------------------------
+
+## 6. Production Prompt Structure
+
 Do not scatter large prompts across controllers and services.
+
 A better structure is:
+
 ``` text
 src/
 └── ai/
@@ -834,7 +1107,9 @@ src/
         ├── resumeAnalysis.prompt.ts
         └── sentiment.prompt.ts
 ```
+
 Example:
+
 ``` typescript
 // src/ai/prompts/chatbot.prompt.ts
 
@@ -858,43 +1133,89 @@ export const chatbotPrompt =
     ],
   ]);
 ```
+
 This makes prompts:
-Reusable.
-Testable.
-Easier to modify.
-Easier to review.
-Separate from application/business logic.
----
-7. Common Mistakes
-Variable mismatch
+
+-   Reusable.
+-   Testable.
+-   Easier to modify.
+-   Easier to review.
+-   Separate from application/business logic.
+
+------------------------------------------------------------------------
+
+## 7. Common Mistakes
+
+### Variable mismatch
+
 Template:
+
 ``` text
 {jobRole}
 ```
+
 Wrong:
+
 ``` typescript
 .format({
   role: "Developer"
 });
 ```
+
 Correct:
+
 ``` typescript
 .format({
   jobRole: "Developer"
 });
 ```
+
 Other common mistakes:
-Using `MessagesPlaceholder("history")` but passing the wrong
-variable name.
-Hardcoding prompts throughout controllers/services.
-Treating user input as trusted instructions.
-Ignoring prompt injection risks.
-Mixing application data and system instructions unnecessarily.
----
-Complete Chatbot Using LangChain
+
+-   Using `MessagesPlaceholder("history")` but passing the wrong
+    variable name.
+-   Hardcoding prompts throughout controllers/services.
+-   Treating user input as trusted instructions.
+-   Ignoring prompt injection risks.
+-   Mixing application data and system instructions unnecessarily.
+
+------------------------------------------------------------------------
+
+# Complete Chatbot Using LangChain
+
+
+## Corrected Chatbot Implementation Notes
+
+The chatbot implementation has been cleaned up so responsibilities are consistent:
+
+```text
+Route
+  ↓
+Controller
+  ↓
+Session Store
+  ↓
+ChatPromptTemplate
+  ↓
+ChatGroq
+  ↓
+SSE response
+  ↓
+Save HumanMessage + AIMessage
+```
+
+The service receives the current user message as a string and passes it to the prompt template. The prompt template creates the human-message portion of the formatted prompt, so the service does not create a second `HumanMessage` for the model call.
+
+`HumanMessage` and `AIMessage` are created in the controller only when the completed conversation turn is saved to session history.
+
+For the learning implementation, the in-memory `Map<string, BaseMessage[]>` session store is appropriate. A production application should replace it with persistent storage.
+
+
 Now we combine the concepts learned so far into a complete LangChain
 chatbot.
-Updated Folder Structure
+
+## Updated Folder Structure
+
 ``` text
 src/
 ├── app.ts
@@ -913,8 +1234,11 @@ src/
     └── prompts/
         └── chatbot.prompt.ts
 ```
----
-`src/ai/prompts/chatbot.prompt.ts`
+
+------------------------------------------------------------------------
+
+## `src/ai/prompts/chatbot.prompt.ts`
+
 ``` typescript
 import {
   ChatPromptTemplate,
@@ -942,7 +1266,9 @@ If the question is unclear, ask for clarification.`,
     ],
   ]);
 ```
+
 The prompt consists of:
+
 ``` text
 System instructions
         ↓
@@ -950,8 +1276,11 @@ Conversation history
         ↓
 Current user message
 ```
----
-`src/store/sessionStoreLangChain.ts`
+
+------------------------------------------------------------------------
+
+## `src/store/sessionStoreLangChain.ts`
+
 ``` typescript
 import type { BaseMessage } from "@langchain/core/messages";
 
@@ -1003,14 +1332,19 @@ export function saveSessionMessages(
   }
 }
 ```
-What this store does
+
+### What this store does
+
 The `Map` stores conversation history by session ID:
+
 ``` text
 sessionId
     ↓
 BaseMessage[]
 ```
+
 For example:
+
 ``` text
 session-123
     ↓
@@ -1021,13 +1355,18 @@ session-123
   AIMessage
 ]
 ```
+
 The maximum history is limited to 20 messages.
+
 > This is suitable for learning and local development. For a production
 > system, persistent storage such as PostgreSQL, MongoDB, Redis, or a
 > dedicated LangChain/LangGraph persistence mechanism would normally be
 > considered.
----
-`src/services/chatServiceLangChain.ts`
+
+------------------------------------------------------------------------
+
+## `src/services/chatServiceLangChain.ts`
+
 ``` typescript
 import type { BaseMessage } from "@langchain/core/messages";
 import { ChatGroq } from "@langchain/groq";
@@ -1066,17 +1405,26 @@ export async function* streamChatResponse(
   }
 }
 ```
-Important
+
+### Important
+
 `userMessage` is already a string.
-Do not create another:
+
+Do **not** create another:
+
 ``` typescript
 new HumanMessage(userMessage)
 ```
+
 inside the service just to send it to the prompt template.
+
 The prompt template is already responsible for converting the value into
 the appropriate message structure.
----
-`src/controller/chatControllerLangChain.ts`
+
+------------------------------------------------------------------------
+
+## `src/controller/chatControllerLangChain.ts`
+
 ``` typescript
 import {
   AIMessage,
@@ -1209,8 +1557,11 @@ export async function createStreams(
   }
 }
 ```
----
-`src/routes/chatRoutes.ts`
+
+------------------------------------------------------------------------
+
+## `src/routes/chatRoutes.ts`
+
 ``` typescript
 import { Router } from "express";
 
@@ -1227,8 +1578,11 @@ router.post(
 
 export default router;
 ```
----
-`src/app.ts`
+
+------------------------------------------------------------------------
+
+## `src/app.ts`
+
 ``` typescript
 import express from "express";
 
@@ -1245,8 +1599,11 @@ app.use(
 
 export default app;
 ```
----
-`src/server.ts`
+
+------------------------------------------------------------------------
+
+## `src/server.ts`
+
 ``` typescript
 import app from "./app.js";
 import { env } from "./config/env.js";
@@ -1260,9 +1617,13 @@ app.listen(
   }
 );
 ```
----
-Final Request Flow
+
+------------------------------------------------------------------------
+
+# Final Request Flow
+
 The complete request travels through the application like this:
+
 ``` text
 POST /api/chat-lang
         ↓
@@ -1282,9 +1643,13 @@ SSE chunks sent to frontend
         ↓
 HumanMessage + AIMessage saved in history
 ```
----
-Key Project 0 vs LangChain Change
-Project 0 --- Raw Groq SDK
+
+------------------------------------------------------------------------
+
+# Key Project 0 vs LangChain Change
+
+## Project 0 --- Raw Groq SDK
+
 ``` text
 Manual message array
         ↓
@@ -1294,7 +1659,9 @@ Custom ChatMessage type
         ↓
 Provider-specific implementation
 ```
-LangChain
+
+## LangChain
+
 ``` text
 ChatPromptTemplate
         ↓
@@ -1304,14 +1671,21 @@ chunk.content
         ↓
 ChatGroq unified model interface
 ```
+
 The main benefit is not that LangChain makes the underlying model more
 intelligent.
-The benefit is that it provides reusable abstractions for building
-larger AI systems.
----
-Lesson 1.5 --- Output Parsers
-1. Simple Explanation
+
+The benefit is that it provides **reusable abstractions for building
+larger AI systems**.
+
+------------------------------------------------------------------------
+
+# Lesson 1.5 --- Output Parsers
+
+## 1. Simple Explanation
+
 In Lesson 0.4, we manually handled structured output:
+
 ``` text
 Prompt asks for JSON
         ↓
@@ -1323,17 +1697,26 @@ Zod safeParse()
         ↓
 Retry if validation fails
 ```
+
 This works, but the same boilerplate has to be implemented repeatedly.
+
 LangChain provides structured-output abstractions that reduce this work.
+
 One of the most important approaches is:
+
 ``` typescript
 withStructuredOutput()
 ```
+
 This allows us to provide a schema and ask the model integration to
 return structured data.
----
-2. Real-World Analogy
+
+------------------------------------------------------------------------
+
+## 2. Real-World Analogy
+
 Think of the manual approach as building your own quality checker:
+
 ``` text
 JSON.parse()
       +
@@ -1341,15 +1724,23 @@ Zod safeParse()
       +
 Retry logic
 ```
+
 You build this checker yourself every time.
+
 LangChain's structured output functionality provides a reusable
 abstraction around this workflow.
+
 You define the expected schema, and LangChain handles much of the
 structured-output plumbing.
----
-3. Technical Breakdown
-A. `withStructuredOutput()` --- Modern Approach
+
+------------------------------------------------------------------------
+
+# 3. Technical Breakdown
+
+## A. `withStructuredOutput()` --- Modern Approach
+
 This is the clean approach for supported model integrations.
+
 ``` typescript
 import { z } from "zod";
 import { ChatGroq } from "@langchain/groq";
@@ -1385,8 +1776,11 @@ console.log(result.atsScore);
 
 console.log(result.missingSkills);
 ```
-What happens here?
-Step 1 --- Define the schema
+
+### What happens here?
+
+### Step 1 --- Define the schema
+
 ``` typescript
 const ResumeAnalysisSchema = z.object({
   atsScore: z.number().min(0).max(100),
@@ -1394,44 +1788,66 @@ const ResumeAnalysisSchema = z.object({
   suggestions: z.array(z.string()).min(1).max(5),
 });
 ```
+
 This defines the structure we expect.
-Step 2 --- Bind the schema
+
+### Step 2 --- Bind the schema
+
 ``` typescript
 const structuredModel =
   model.withStructuredOutput(
     ResumeAnalysisSchema
   );
 ```
+
 Now the model is configured to produce structured output according to
 that schema.
-Step 3 --- Invoke the model
+
+### Step 3 --- Invoke the model
+
 ``` typescript
 const result =
   await structuredModel.invoke(...);
 ```
+
 The returned result is already structured according to the configured
 integration.
+
 You don't manually need to do:
+
 ``` typescript
 JSON.parse(...)
 ```
+
 for the normal structured-output path.
+
 TypeScript can also infer the resulting shape from the schema.
+
 For example:
+
 ``` typescript
 result.atsScore
 ```
+
 is understood as a number.
----
-Hard Guarantee vs Soft Guarantee
+
+------------------------------------------------------------------------
+
+## Hard Guarantee vs Soft Guarantee
+
 This distinction is important.
+
 When the provider supports constrained decoding or equivalent native
 structured-output capabilities, the integration may be able to enforce
 the structure during generation.
+
 That is stronger than simply generating arbitrary text and validating it
 afterward.
+
 Conceptually:
-Manual approach
+
+### Manual approach
+
 ``` text
 Generate anything
       ↓
@@ -1441,20 +1857,30 @@ Validate
       ↓
 Reject if invalid
 ```
-Constrained structured output
+
+### Constrained structured output
+
 ``` text
 Generate according to allowed structure
       ↓
 Structured result
 ```
+
 However:
+
 > **Do not interpret this as "the model can never fail."**
+
 Network failures, rate limits, provider errors, unsupported schemas,
 configuration problems, and other failures can still occur.
+
 Provider support also varies.
----
-B. `StructuredOutputParser` --- Older / Manual Approach
+
+------------------------------------------------------------------------
+
+# B. `StructuredOutputParser` --- Older / Manual Approach
+
 You may encounter the older pattern in tutorials and existing codebases.
+
 ``` typescript
 import { StructuredOutputParser } from "langchain/output_parsers";
 
@@ -1482,10 +1908,14 @@ const parsed =
     response.content as string
   );
 ```
+
 Here, the parser generates format instructions that are inserted into
 the prompt.
+
 Then you manually parse the model response.
-Difference
+
+### Difference
+
 ``` text
 StructuredOutputParser
         ↓
@@ -1495,7 +1925,9 @@ Model
         ↓
 Manual parser.parse()
 ```
+
 Whereas:
+
 ``` text
 withStructuredOutput()
         ↓
@@ -1503,22 +1935,33 @@ Model configured with schema
         ↓
 Structured result
 ```
-Production Rule
+
+### Production Rule
+
 For new code, prefer:
+
 ``` typescript
 withStructuredOutput()
 ```
+
 when the model integration supports it appropriately.
+
 Understand `StructuredOutputParser` because:
-You will encounter it in older tutorials.
-Existing projects may use it.
-It can provide more direct control over format instructions.
-Some provider/integration edge cases may require alternative
-approaches.
-It is not a special solution for complex schemas.
----
-C. Validation Failure --- What Happens?
+
+-   You will encounter it in older tutorials.
+-   Existing projects may use it.
+-   It can provide more direct control over format instructions.
+-   Some provider/integration edge cases may require alternative
+    approaches.
+
+It is **not** a special solution for complex schemas.
+
+------------------------------------------------------------------------
+
+# C. Validation Failure --- What Happens?
+
 Even with structured output, production code should have error handling.
+
 ``` typescript
 try {
   const result =
@@ -1539,24 +1982,34 @@ try {
   // or user-friendly error response
 }
 ```
+
 Important:
+
 ``` text
 Structured output
 ≠
 The request can never fail
 ```
+
 You can still encounter:
-Network errors.
-Rate limits.
-Provider errors.
-Invalid configuration.
-Unsupported capabilities.
-Unexpected edge cases.
+
+-   Network errors.
+-   Rate limits.
+-   Provider errors.
+-   Invalid configuration.
+-   Unsupported capabilities.
+-   Unexpected edge cases.
+
 Therefore, `try/catch` remains important.
----
-D. Structured Output + Streaming
+
+------------------------------------------------------------------------
+
+# D. Structured Output + Streaming
+
 Structured output and streaming can be a difficult combination.
+
 Suppose the final output should be:
+
 ``` json
 {
   "atsScore": 87,
@@ -1565,40 +2018,60 @@ Suppose the final output should be:
   ]
 }
 ```
+
 If we stream it token by token, the frontend may temporarily receive:
+
 ``` text
 {
 ```
+
 then:
+
 ``` text
 {"atsScore":
 ```
+
 then:
+
 ``` text
 {"atsScore": 8
 ```
+
 then:
+
 ``` text
 {"atsScore": 87,
 ```
+
 These intermediate states are incomplete JSON.
+
 The frontend cannot reliably treat every partial chunk as a complete
 object.
+
 Therefore, for normal structured-output use cases:
+
 ``` typescript
 structuredModel.invoke(...)
 ```
+
 is usually simpler than:
+
 ``` typescript
 structuredModel.stream(...)
 ```
+
 unless you specifically need advanced progressive structured-output
 handling.
----
-4. Real Application Usage
-This is directly useful for the HireHub resume analysis/matching
-feature.
+
+------------------------------------------------------------------------
+
+# 4. Real Application Usage
+
+This is directly useful for the **HireHub resume analysis/matching
+feature**.
+
 Previously, the resume parser manually performed:
+
 ``` text
 Model
  ↓
@@ -1608,12 +2081,17 @@ Zod validation
  ↓
 Retry
 ```
+
 Now we can use:
+
 ``` typescript
 withStructuredOutput()
 ```
+
 to simplify the implementation.
+
 For example, a job-matching schema can contain:
+
 ``` typescript
 const JobMatchSchema = z.object({
   matchScore: z.number().min(0).max(100),
@@ -1622,30 +2100,44 @@ const JobMatchSchema = z.object({
   recommendations: z.array(z.string()),
 });
 ```
----
-5. Common Mistakes
+
+------------------------------------------------------------------------
+
+# 5. Common Mistakes
+
 Avoid:
-Using streaming when you need a complete structured object without
-handling partial output.
-Assuming structured output means the request can never fail.
-Removing `try/catch` because a schema is present.
-Using the old `StructuredOutputParser` pattern unnecessarily when
-`withStructuredOutput()` is supported.
-Creating extremely complicated schemas that make model behavior less
-reliable.
-Assuming every provider offers exactly the same structured-output
-guarantees.
----
-6. Production Considerations
-Provider Support
+
+-   Using streaming when you need a complete structured object without
+    handling partial output.
+-   Assuming structured output means the request can never fail.
+-   Removing `try/catch` because a schema is present.
+-   Using the old `StructuredOutputParser` pattern unnecessarily when
+    `withStructuredOutput()` is supported.
+-   Creating extremely complicated schemas that make model behavior less
+    reliable.
+-   Assuming every provider offers exactly the same structured-output
+    guarantees.
+
+------------------------------------------------------------------------
+
+# 6. Production Considerations
+
+## Provider Support
+
 Different providers can have different levels of structured-output
 support.
+
 Some may support native/constrained structured generation while others
 may rely on prompt-based techniques or other mechanisms.
+
 Always understand the behavior of the provider you are using.
-Schema Complexity
+
+## Schema Complexity
+
 Very complex schemas can reduce reliability.
+
 For example:
+
 ``` text
 Simple schema
     ↓
@@ -1658,9 +2150,13 @@ Highly nested schema
     ↓
 Potentially harder to satisfy reliably
 ```
+
 Keep schemas as simple as the application requirements allow.
-Graceful Degradation
+
+## Graceful Degradation
+
 If structured output repeatedly fails:
+
 ``` text
 Do not crash the application
         ↓
@@ -1672,57 +2168,87 @@ Return a safe user-facing response
         ↓
 Optionally use a fallback
 ```
+
 For example:
+
 ``` text
 "Resume analysis is temporarily unavailable.
 Please try again later."
 ```
----
-Small Exercise
-Build a Job Matching feature for HireHub using
+
+------------------------------------------------------------------------
+
+# Small Exercise
+
+Build a **Job Matching** feature for HireHub using
 `withStructuredOutput()`.
+
 Your schema should contain:
+
 ``` text
 matchScore
 matchingSkills
 missingSkills
 recommendation
 ```
+
 Requirements:
-Bind the model with `withStructuredOutput()`.
-Use one `.invoke()` call.
-Provide the resume and job description.
-Decide whether `.invoke()` or `.stream()` is more appropriate.
-Explain your decision using the structured-output + streaming
-trade-off.
----
-Test Your Understanding --- 5 Questions
-Question 1
+
+1.  Bind the model with `withStructuredOutput()`.
+2.  Use one `.invoke()` call.
+3.  Provide the resume and job description.
+4.  Decide whether `.invoke()` or `.stream()` is more appropriate.
+5.  Explain your decision using the structured-output + streaming
+    trade-off.
+
+------------------------------------------------------------------------
+
+# Test Your Understanding --- 5 Questions
+
+### Question 1
+
 What additional capability can `withStructuredOutput()` provide compared
 with manually doing:
+
 ``` text
 JSON.parse()
 +
 Zod safeParse()
 ```
+
 ?
-Question 2
+
+### Question 2
+
 Why can structured output and streaming be problematic together?
+
 Think about an incomplete JSON object being received token by token.
-Question 3
+
+### Question 3
+
 Why should you still use `try/catch` with structured output?
-What does structured-output support guarantee, and what does it not
+
+What does structured-output support guarantee, and what does it **not**
 guarantee?
-Question 4
+
+### Question 4
+
 What problems can occur when a Zod schema becomes extremely complex?
-Question 5
+
+### Question 5
+
 Why is it still useful to understand `StructuredOutputParser` even if
 you prefer `withStructuredOutput()` for new code?
----
-Correct Resume/Job Matching Implementation
+
+------------------------------------------------------------------------
+
+# Correct Resume/Job Matching Implementation
+
 The resume/job matching example below uses `withStructuredOutput()` and
 a `ChatPromptTemplate`.
+
 The implementation follows these steps:
+
 ``` text
 Resume + Job Description
         ↓
@@ -1734,7 +2260,9 @@ withStructuredOutput(Zod schema)
         ↓
 Structured result
 ```
-Correct Implementation
+
+## Correct Implementation
+
 ``` typescript
 import { z } from "zod";
 import { ChatGroq } from "@langchain/groq";
@@ -1784,51 +2312,70 @@ export async function getResumeParseData(
   return response;
 }
 ```
-Why This Implementation Is Correct
-`ChatGroq` is the correct LangChain Groq model class.
-`env` is imported before the API key is used.
-`matchScore` is a number constrained from `0` to `100`.
-`z.array()` is used for arrays of strings.
-LangChain prompt variables use `{resume}` and `{jobDescription}`.
-The function is a normal `async` function because it uses
-`.invoke()`, not a stream.
-The result is returned to the caller.
-The prompt and structured model are composed with `.pipe()`, which
-prepares the implementation for LCEL.
-Structured Output Guarantee
+
+## Why This Implementation Is Correct
+
+-   `ChatGroq` is the correct LangChain Groq model class.
+-   `env` is imported before the API key is used.
+-   `matchScore` is a number constrained from `0` to `100`.
+-   `z.array()` is used for arrays of strings.
+-   LangChain prompt variables use `{resume}` and `{jobDescription}`.
+-   The function is a normal `async` function because it uses
+    `.invoke()`, not a stream.
+-   The result is returned to the caller.
+-   The prompt and structured model are composed with `.pipe()`, which
+    prepares the implementation for LCEL.
+
+## Structured Output Guarantee
+
 `withStructuredOutput()` provides a stronger structured-output workflow
 when the model integration supports the required structured generation
 capabilities. It does not mean that network errors, rate limits,
 provider failures, configuration problems, or every possible model
 failure disappear.
-Structured Output and Streaming
+
+## Structured Output and Streaming
+
 For an object such as:
+
 ``` json
 {
   "matchScore": 87,
   "missingSkills": ["Docker"]
 }
 ```
+
 streaming can expose incomplete intermediate JSON such as:
+
 ``` text
 {
 {"matchScore":
 {"matchScore": 87,
 ```
+
 For ordinary structured extraction, `.invoke()` is therefore usually
 easier to consume than `.stream()`.
-Why Learn `StructuredOutputParser`?
+
+## Why Learn `StructuredOutputParser`?
+
 `StructuredOutputParser` is useful to understand because:
-Older LangChain tutorials use it.
-Existing projects may use it.
-It gives direct control over format instructions.
-Some provider/integration situations may require an alternative
-structured-output approach.
+
+1.  Older LangChain tutorials use it.
+2.  Existing projects may use it.
+3.  It gives direct control over format instructions.
+4.  Some provider/integration situations may require an alternative
+    structured-output approach.
+
 It is not simply a fallback for complex schemas.
----
-Lesson 1.6 --- Runnables / LCEL
-1. Simple Explanation
+
+------------------------------------------------------------------------
+
+# Lesson 1.6 --- Runnables / LCEL
+
+## 1. Simple Explanation
+
 Until now, we repeatedly used a pattern like:
+
 ``` typescript
 const messages =
   await template.formatMessages({
@@ -1838,13 +2385,17 @@ const messages =
 const response =
   await model.invoke(messages);
 ```
+
 These are multiple steps:
+
 ``` text
 Template
    ↓
 Model
 ```
+
 In production, a workflow can become much larger:
+
 ``` text
 Input
  ↓
@@ -1858,22 +2409,34 @@ Validation
  ↓
 Database
 ```
+
 Writing all of these connections manually can become verbose.
-LCEL
-LCEL stands for LangChain Expression Language.
+
+### LCEL
+
+**LCEL stands for LangChain Expression Language.**
+
 It provides a composable way to connect LangChain components into
 pipelines.
+
 The core idea is similar to the Unix pipe operator:
+
 ``` text
 command1 | command2 | command3
 ```
+
 In LangChain:
+
 ``` typescript
 prompt.pipe(model).pipe(parser)
 ```
----
-2. Real-World Analogy
+
+------------------------------------------------------------------------
+
+# 2. Real-World Analogy
+
 Think about an Express middleware chain:
+
 ``` typescript
 app.post(
   "/exam",
@@ -1883,9 +2446,12 @@ app.post(
   examController
 );
 ```
+
 Each middleware performs a specific task and passes the request to the
 next stage.
+
 Conceptually:
+
 ``` text
 Request
   ↓
@@ -1897,7 +2463,9 @@ Rate Limit
   ↓
 Controller
 ```
+
 LCEL follows a similar pipeline idea:
+
 ``` text
 Input
   ↓
@@ -1909,26 +2477,41 @@ Parser
   ↓
 Output
 ```
----
-3. Technical Breakdown
-A. Runnable --- The Common Interface
+
+------------------------------------------------------------------------
+
+# 3. Technical Breakdown
+
+## A. Runnable --- The Common Interface
+
 LangChain components such as:
-`ChatPromptTemplate`
-Chat models
-Output parsers
+
+-   `ChatPromptTemplate`
+-   Chat models
+-   Output parsers
+
 implement the Runnable interface.
+
 This gives them common methods.
-`.invoke()`
+
+### `.invoke()`
+
 ``` typescript
 await runnable.invoke(input);
 ```
+
 Process one input and return one result.
-`.stream()`
+
+### `.stream()`
+
 ``` typescript
 await runnable.stream(input);
 ```
+
 Process the input and return streaming output.
-`.batch()`
+
+### `.batch()`
+
 ``` typescript
 await runnable.batch([
   input1,
@@ -1936,16 +2519,25 @@ await runnable.batch([
   input3,
 ]);
 ```
+
 Process multiple inputs.
-`.pipe()`
+
+### `.pipe()`
+
 ``` typescript
 runnable.pipe(nextRunnable);
 ```
+
 Connect one Runnable to another.
+
 This common interface is one of the main reasons LCEL works so well.
----
-B. RunnableSequence
+
+------------------------------------------------------------------------
+
+# B. RunnableSequence
+
 The old approach:
+
 ``` typescript
 const messages =
   await template.formatMessages({
@@ -1958,7 +2550,9 @@ const response =
     messages
   );
 ```
+
 The LCEL approach:
+
 ``` typescript
 const chain =
   resumeParseTemplate.pipe(
@@ -1971,7 +2565,9 @@ const response =
     jobDescription,
   });
 ```
+
 What happens?
+
 ``` text
 chain.invoke(...)
        ↓
@@ -1983,26 +2579,36 @@ structuredModel
        ↓
 structured response
 ```
+
 `.pipe()` creates a new Runnable that connects the output of one
 component to the input of the next.
+
 This removes manual intermediate wiring.
----
-Multiple Steps
+
+------------------------------------------------------------------------
+
+## Multiple Steps
+
 You can build longer pipelines:
+
 ``` typescript
 const chain =
   promptTemplate
     .pipe(model)
     .pipe(outputParser);
 ```
+
 Then:
+
 ``` typescript
 const result =
   await chain.invoke({
     userInput: "...",
   });
 ```
+
 Conceptually:
+
 ``` text
 userInput
    ↓
@@ -2014,15 +2620,22 @@ Output Parser
    ↓
 Final Result
 ```
----
-C. RunnableParallel
+
+------------------------------------------------------------------------
+
+# C. RunnableParallel
+
 Sometimes you have independent tasks that do not depend on one another.
+
 For example, from a resume you might want:
+
 ``` text
 1. Extract candidate skills
 2. Generate an experience summary
 ```
+
 These tasks can potentially run at the same time.
+
 ``` typescript
 import {
   RunnableParallel,
@@ -2042,15 +2655,20 @@ const result =
     resumeText: "...",
   });
 ```
+
 The result could look like:
+
 ``` typescript
 {
   skills: [...],
   summary: "..."
 }
 ```
-Why is this useful?
+
+### Why is this useful?
+
 Sequential execution:
+
 ``` text
 Chain 1
   ↓
@@ -2058,7 +2676,9 @@ Chain 2
 
 Total time ≈ time1 + time2
 ```
+
 Parallel execution:
+
 ``` text
 Chain 1 ──┐
           ├──→ Result
@@ -2066,13 +2686,19 @@ Chain 2 ──┘
 
 Total time ≈ max(time1, time2)
 ```
+
 When the tasks are independent, parallel execution can significantly
 reduce latency.
----
-D. RunnableLambda
+
+------------------------------------------------------------------------
+
+# D. RunnableLambda
+
 Sometimes you have a normal JavaScript/TypeScript function that you want
 to place inside an LCEL pipeline.
+
 For example:
+
 ``` typescript
 import {
   RunnableLambda,
@@ -2084,20 +2710,28 @@ const uppercaseTransform =
       input.toUpperCase()
   );
 ```
+
 Now it can be used in a chain:
+
 ``` typescript
 const chain =
   promptTemplate
     .pipe(model)
     .pipe(uppercaseTransform);
 ```
+
 `RunnableLambda` wraps custom logic so it can participate in the
 Runnable pipeline.
----
-E. RunnablePassthrough
+
+------------------------------------------------------------------------
+
+# E. RunnablePassthrough
+
 Sometimes you want to process an input while also keeping the original
 input.
+
 For example:
+
 ``` typescript
 import {
   RunnableParallel,
@@ -2113,20 +2747,26 @@ const chain =
       analysisChain,
   });
 ```
+
 Then:
+
 ``` typescript
 const result =
   await chain.invoke({
     resumeText: "...",
   });
 ```
+
 Conceptually:
+
 ``` text
                  ┌──→ original input
 Input ───────────┤
                  └──→ analysis chain
 ```
+
 Result:
+
 ``` typescript
 {
   original: {
@@ -2138,11 +2778,16 @@ Result:
   }
 }
 ```
+
 `RunnablePassthrough` simply passes the input forward without modifying
 it.
----
-F. Streaming Through a Chain
+
+------------------------------------------------------------------------
+
+# F. Streaming Through a Chain
+
 Another useful feature is that streaming can work through the chain.
+
 ``` typescript
 const chain =
   promptTemplate.pipe(model);
@@ -2156,9 +2801,13 @@ for await (const chunk of stream) {
   console.log(chunk.content);
 }
 ```
+
 You do not have to manually stream the model separately from the prompt.
+
 LCEL handles the pipeline.
+
 This is especially useful for chat applications:
+
 ``` text
 User input
     ↓
@@ -2170,22 +2819,34 @@ Stream
     ↓
 Frontend
 ```
----
-G. Why LCEL Exists
+
+------------------------------------------------------------------------
+
+# G. Why LCEL Exists
+
 LCEL provides several benefits.
-Less Boilerplate
+
+### Less Boilerplate
+
 You don't have to manually pass the result of every step into the next
 step.
-Consistency
+
+### Consistency
+
 The same methods are available across Runnable components:
+
 ``` text
 .invoke()
 .stream()
 .batch()
 ```
-Composability
+
+### Composability
+
 A chain is itself a Runnable.
+
 Therefore:
+
 ``` text
 Chain A
    ↓
@@ -2193,12 +2854,19 @@ Chain B
    ↓
 Chain C
 ```
+
 can be composed into larger workflows.
-Parallel Execution
+
+### Parallel Execution
+
 `RunnableParallel` makes concurrent execution easier.
----
-4. Real Application Usage
+
+------------------------------------------------------------------------
+
+# 4. Real Application Usage
+
 Our previous `getResumeParseData()` implementation was:
+
 ``` typescript
 export async function getResumeParseData(
   resume: string,
@@ -2218,7 +2886,9 @@ export async function getResumeParseData(
   return response;
 }
 ```
+
 Using LCEL:
+
 ``` typescript
 const resumeParseChain =
   resumeParseTemplate.pipe(
@@ -2235,49 +2905,79 @@ export async function getResumeParseData(
   });
 }
 ```
+
 This is cleaner because the prompt-to-model relationship is defined
 once.
+
 The service only needs to provide the input.
----
-5. Common Mistakes
-Mistake 1 --- Wrong `.pipe()` Order
+
+------------------------------------------------------------------------
+
+# 5. Common Mistakes
+
+## Mistake 1 --- Wrong `.pipe()` Order
+
 The order matters.
+
 Correct:
+
 ``` typescript
 promptTemplate
   .pipe(model)
   .pipe(outputParser);
 ```
+
 The prompt produces the model input.
+
 The model produces the parser input.
+
 Incorrect ordering can cause incompatible input/output types or
 unexpected behavior.
----
-Mistake 2 --- Not Using Parallel Execution
+
+------------------------------------------------------------------------
+
+## Mistake 2 --- Not Using Parallel Execution
+
 If two tasks are completely independent:
+
 ``` text
 Task A
 Task B
 ```
+
 and you execute them sequentially, you may waste latency.
+
 Consider:
+
 ``` typescript
 RunnableParallel
 ```
+
 when the tasks do not depend on each other.
----
-Mistake 3 --- Making Every Tiny Task a Chain
+
+------------------------------------------------------------------------
+
+## Mistake 3 --- Making Every Tiny Task a Chain
+
 If you only have:
+
 ``` typescript
 await model.invoke("Hello");
 ```
+
 there is usually no reason to create a complicated chain.
+
 Do not introduce abstraction simply because LCEL exists.
+
 Use it when it improves composition, readability, reuse, or workflow
 management.
----
-Mistake 4 --- Forgetting Error Handling
+
+------------------------------------------------------------------------
+
+## Mistake 4 --- Forgetting Error Handling
+
 If one step fails:
+
 ``` text
 Prompt
   ↓
@@ -2285,14 +2985,22 @@ Model ❌
   ↓
 Parser
 ```
+
 the complete chain can fail.
+
 Production applications should handle failures appropriately.
----
-6. Production Considerations
-Debugging
+
+------------------------------------------------------------------------
+
+# 6. Production Considerations
+
+## Debugging
+
 As chains become larger, it can become difficult to determine which step
 failed.
+
 For example:
+
 ``` text
 Prompt
  ↓
@@ -2306,33 +3014,50 @@ Tool
  ↓
 Database
 ```
+
 If something fails, identifying the exact step can become difficult.
-Tracing tools such as LangSmith can help with this later in the
+
+Tracing tools such as **LangSmith** can help with this later in the
 course.
----
-Parallel vs Sequential
+
+------------------------------------------------------------------------
+
+## Parallel vs Sequential
+
 Parallel execution is not always correct.
+
 Use parallel execution when:
+
 ``` text
 Task B does NOT depend on Task A
 ```
+
 For example:
+
 ``` text
 Extract skills ──────┐
                      ├──→ Final result
 Generate summary ────┘
 ```
+
 But if:
+
 ``` text
 Task A
   ↓
 Task B requires Task A's output
 ```
+
 then they must remain sequential.
----
-Reusability
+
+------------------------------------------------------------------------
+
+## Reusability
+
 For production projects, chains can be organized separately.
+
 For example:
+
 ``` text
 src/
 └── ai/
@@ -2341,68 +3066,109 @@ src/
         ├── jobMatch.chain.ts
         └── chatbot.chain.ts
 ```
+
 Named and exported chains can then be reused across different services
 and routes.
----
-Small Exercise
-Exercise 1
+
+------------------------------------------------------------------------
+
+# Small Exercise
+
+## Exercise 1
+
 Take:
+
 ``` typescript
 resumeParseTemplate
 ```
+
 and:
+
 ``` typescript
 structuredModel
 ```
+
 and combine them using `.pipe()`.
+
 Then create:
+
 ``` typescript
 getResumeParseData()
 ```
+
 using the chain.
----
-Exercise 2
+
+------------------------------------------------------------------------
+
+## Exercise 2
+
 Imagine HireHub needs two independent resume operations:
+
 ``` text
 A. Extract candidate name + email
 
 B. Perform detailed skill analysis
 ```
+
 Create the conceptual structure using:
+
 ``` typescript
 RunnableParallel
 ```
+
 You can write pseudocode instead of complete implementation.
----
-Test Your Understanding --- 5 Questions
-Question 1
+
+------------------------------------------------------------------------
+
+# Test Your Understanding --- 5 Questions
+
+### Question 1
+
 What is the main benefit of the Runnable interface?
+
 How would combining LangChain components be more difficult without a
 common interface?
-Question 2
+
+### Question 2
+
 Why does the order matter in:
+
 ``` typescript
 .pipe()
 ```
+
 ?
+
 Give an example where using the wrong order causes an incompatible
 input/output flow.
-Question 3
+
+### Question 3
+
 When should you use:
+
 ``` typescript
 RunnableParallel
 ```
-and when should you not use it?
+
+and when should you **not** use it?
+
 Think about dependencies between tasks.
-Question 4
+
+### Question 4
+
 If:
+
 ``` typescript
 prompt.pipe(model)
 ```
+
 supports `.stream()`, what practical benefit does this provide for a
 chatbot?
-Question 5
+
+### Question 5
+
 Suppose a chain contains three steps:
+
 ``` text
 Step 1
   ↓
@@ -2410,11 +3176,17 @@ Step 2
   ↓
 Step 3
 ```
+
 If Step 2 fails, what happens to Step 3?
+
 How should this be handled in a production application?
----
-My Current Implementation
+
+------------------------------------------------------------------------
+
+# My Current Implementation
+
 Here is the current resume matching implementation using LCEL.
+
 ``` typescript
 import { ChatGroq } from "@langchain/groq";
 import { z } from "zod";
@@ -2485,12 +3257,17 @@ export async function getResumeParseData(
   return response;
 }
 ```
+
 > **Note:** `RunnableParallel` is imported above because it will be
 > useful when implementing multiple independent resume-analysis chains.
 > It is not required for the single resume-matching chain shown here.
----
-Current Learning Summary
+
+------------------------------------------------------------------------
+
+# Current Learning Summary
+
 At this point, the major concepts covered in Phase 1 are:
+
 ``` text
 LangChain.js
     ↓
@@ -2522,7 +3299,9 @@ RunnableLambda
     ↓
 RunnablePassthrough
 ```
+
 The progression is important:
+
 ``` text
 Raw LLM SDK
      ↓
@@ -2538,41 +3317,55 @@ Composable Runnables
      ↓
 Production AI Pipelines
 ```
+
 This gives the foundation required for the next LangChain topics such as
 more advanced chains, retrieval, RAG, tools, agents, memory, and
 production observability.
----
-Project 1 --- AI Job Description Generator
+
+------------------------------------------------------------------------
+
+# Project 1 --- AI Job Description Generator
+
 This project turns a small company input into a complete, structured job
 description.
+
 It intentionally demonstrates several LangChain concepts together:
-`ChatPromptTemplate`
-LCEL with `.pipe()`
-Streaming with `.stream()`
-Structured output with `withStructuredOutput()`
-Zod schema validation
-A two-stage sequential workflow
-Server-Sent Events (SSE)
-Express controllers and routes
-Usage metadata
-Clean separation between prompts, schemas, chains, services, and
-controllers
-Project Goal
+
+-   `ChatPromptTemplate`
+-   LCEL with `.pipe()`
+-   Streaming with `.stream()`
+-   Structured output with `withStructuredOutput()`
+-   Zod schema validation
+-   A two-stage sequential workflow
+-   Server-Sent Events (SSE)
+-   Express controllers and routes
+-   Usage metadata
+-   Clean separation between prompts, schemas, chains, services, and
+    controllers
+
+## Project Goal
+
 The API receives:
+
 ``` text
 roleTitle
 keyRequirements
 ```
+
 It then:
-Generates a readable job description.
-Streams that generated text to the client.
-Collects the complete generated text.
-Sends the complete text through a second extraction chain.
-Converts the generated text into a structured `JobDescription`
-object.
-Sends the final structured result to the client.
-Why Two Stages?
+
+1.  Generates a readable job description.
+2.  Streams that generated text to the client.
+3.  Collects the complete generated text.
+4.  Sends the complete text through a second extraction chain.
+5.  Converts the generated text into a structured `JobDescription`
+    object.
+6.  Sends the final structured result to the client.
+
+## Why Two Stages?
+
 The workflow is intentionally sequential:
+
 ``` text
 Company Input
      ↓
@@ -2586,11 +3379,16 @@ Extraction Chain
      ↓
 Structured JobDescription
 ```
+
 The extraction step depends on the complete generated text, so it cannot
 start before generation has finished.
----
-Project Architecture
-Folder Structure
+
+------------------------------------------------------------------------
+
+## Project Architecture
+
+### Folder Structure
+
 ``` text
 src/
 ├── ai/
@@ -2614,45 +3412,70 @@ src/
 └── server.ts
 .env
 ```
-Responsibility of Each Layer
----
-File                               Responsibility
----
-`jobDescription.prompt.ts`         Defines generation and extraction
-prompts
-`jobDescription.schema.ts`         Defines the expected structured
-output
-`jobDescription.chain.ts`          Connects prompts and models
-`jobDescription.service.ts`        Orchestrates streaming and
-extraction
-`jobDescription.controller.ts`     Handles HTTP input and SSE output
-`router.ts`                        Defines API endpoints
-`env.ts`                           Validates environment variables
-`logger.ts`                        Provides a small logging
-abstraction
-`app.ts`                           Creates and configures Express
-`server.ts`                        Starts the HTTP server
----
-1. Installation
+
+### Responsibility of Each Layer
+
+  ---------------------------------------------------------------------
+  File                               Responsibility
+  ---------------------------------- ----------------------------------
+  `jobDescription.prompt.ts`         Defines generation and extraction
+                                     prompts
+
+  `jobDescription.schema.ts`         Defines the expected structured
+                                     output
+
+  `jobDescription.chain.ts`          Connects prompts and models
+
+  `jobDescription.service.ts`        Orchestrates streaming and
+                                     extraction
+
+  `jobDescription.controller.ts`     Handles HTTP input and SSE output
+
+  `router.ts`                        Defines API endpoints
+
+  `env.ts`                           Validates environment variables
+
+  `logger.ts`                        Provides a small logging
+                                     abstraction
+
+  `app.ts`                           Creates and configures Express
+
+  `server.ts`                        Starts the HTTP server
+  ---------------------------------------------------------------------
+
+------------------------------------------------------------------------
+
+## 1. Installation
+
 Install the required packages:
+
 ``` bash
 npm install express dotenv zod @langchain/core @langchain/groq
 npm install -D typescript tsx @types/express @types/node
 ```
+
 The important LangChain packages are:
+
 ``` text
 @langchain/core
 @langchain/groq
 ```
----
-2. Environment Configuration
-`.env`
+
+------------------------------------------------------------------------
+
+## 2. Environment Configuration
+
+### `.env`
+
 ``` env
 GROQ_API_KEY=your_groq_api_key
 PORT=3000
 ```
+
 Do not print the API key to the console.
-`src/config/env.ts`
+
+### `src/config/env.ts`
+
 ``` typescript
 import "dotenv/config";
 import { z } from "zod";
@@ -2675,19 +3498,28 @@ if (!parsedEnv.success) {
 
 export const env = parsedEnv.data;
 ```
-Explanation
+
+### Explanation
+
 The environment layer:
-Loads `.env`.
-Defines the expected variables.
-Validates them with Zod.
-Converts `PORT` into a number.
-Stops application startup when required configuration is invalid.
-Exports one typed `env` object for the rest of the application.
----
-3. Prompt Layer
-`src/ai/prompts/jobDescription.prompt.ts`
+
+1.  Loads `.env`.
+2.  Defines the expected variables.
+3.  Validates them with Zod.
+4.  Converts `PORT` into a number.
+5.  Stops application startup when required configuration is invalid.
+6.  Exports one typed `env` object for the rest of the application.
+
+------------------------------------------------------------------------
+
+# 3. Prompt Layer
+
+## `src/ai/prompts/jobDescription.prompt.ts`
+
 The project uses two prompts because it has two different AI tasks.
-Generation Prompt
+
+### Generation Prompt
+
 ``` typescript
 import { ChatPromptTemplate } from "@langchain/core/prompts";
 
@@ -2715,7 +3547,9 @@ Key requirements provided by the company:
     ],
   ]);
 ```
-Extraction Prompt
+
+### Extraction Prompt
+
 ``` typescript
 export const extractionJDPrompt =
   ChatPromptTemplate.fromMessages([
@@ -2739,8 +3573,11 @@ Return only information that is present in the generated text.`,
     ],
   ]);
 ```
-Why Separate the Prompts?
+
+### Why Separate the Prompts?
+
 The two prompts have different responsibilities:
+
 ``` text
 Generation Prompt
     ↓
@@ -2750,11 +3587,16 @@ Extraction Prompt
     ↓
 Convert natural language into structured data
 ```
+
 Keeping them separate makes the application easier to test, modify, and
 reuse.
----
-4. Schema Layer
-`src/ai/schemas/jobDescription.schema.ts`
+
+------------------------------------------------------------------------
+
+# 4. Schema Layer
+
+## `src/ai/schemas/jobDescription.schema.ts`
+
 ``` typescript
 import { z } from "zod";
 
@@ -2769,7 +3611,9 @@ export const JobDescriptionSchema = z.object({
 export type JobDescription =
   z.infer<typeof JobDescriptionSchema>;
 ```
-What the Schema Defines
+
+### What the Schema Defines
+
 ``` text
 JobDescription
 ├── title: string
@@ -2778,16 +3622,24 @@ JobDescription
 ├── requirements: string[]
 └── niceToHave: string[]
 ```
+
 The schema gives the extraction model a precise target.
-Why Zod?
+
+### Why Zod?
+
 Zod provides:
-Runtime validation
-TypeScript type inference
-Clear field definitions
-Constraints such as minimum and maximum array sizes
----
-5. Chain Layer
-`src/ai/chains/jobDescription.chain.ts`
+
+-   Runtime validation
+-   TypeScript type inference
+-   Clear field definitions
+-   Constraints such as minimum and maximum array sizes
+
+------------------------------------------------------------------------
+
+# 5. Chain Layer
+
+## `src/ai/chains/jobDescription.chain.ts`
+
 ``` typescript
 import { ChatGroq } from "@langchain/groq";
 
@@ -2828,22 +3680,35 @@ export const jdExtractionChain =
     structuredExtractionModel
   );
 ```
-Why Two Models?
+
+## Why Two Models?
+
 The project uses different temperatures for different jobs.
-Generation
+
+### Generation
+
 ``` typescript
 temperature: 0.7
 ```
+
 Natural language generation benefits from some creativity.
-Extraction
+
+### Extraction
+
 ``` typescript
 temperature: 0.1
 ```
+
 Structured extraction benefits from more deterministic behavior.
+
 The important concept is that model configuration should match the task.
----
-6. Service Layer
-`src/services/jobDescription.service.ts`
+
+------------------------------------------------------------------------
+
+# 6. Service Layer
+
+## `src/services/jobDescription.service.ts`
+
 ``` typescript
 import type { AIMessage } from "@langchain/core/messages";
 
@@ -2907,40 +3772,60 @@ export async function* generateJobDescriptionStream(
   };
 }
 ```
-What the Service Does
+
+## What the Service Does
+
 The service contains the main AI workflow.
-Step 1 --- Start the streaming chain
+
+### Step 1 --- Start the streaming chain
+
 ``` typescript
 const stream = await jdStreamingChain.stream({
   roleTitle,
   keyRequirements,
 });
 ```
-Step 2 --- Collect generated chunks
+
+### Step 2 --- Collect generated chunks
+
 Each chunk is immediately yielded to the controller.
+
 At the same time, all chunks are appended to:
+
 ``` typescript
 let fullText = "";
 ```
-Step 3 --- Wait for complete generation
+
+### Step 3 --- Wait for complete generation
+
 Only after the stream finishes do we have the complete job description.
-Step 4 --- Run extraction
+
+### Step 4 --- Run extraction
+
 ``` typescript
 await jdExtractionChain.invoke({
   generatedText: fullText,
 });
 ```
-Step 5 --- Return the structured result
+
+### Step 5 --- Return the structured result
+
 The service emits a final event containing:
+
 ``` text
 final
 ├── data
 └── usage
 ```
+
 This makes the service an excellent example of a sequential AI workflow.
----
-7. Controller Layer
-`src/controllers/jobDescription.controller.ts`
+
+------------------------------------------------------------------------
+
+# 7. Controller Layer
+
+## `src/controllers/jobDescription.controller.ts`
+
 ``` typescript
 import type { Request, Response } from "express";
 
@@ -3060,8 +3945,11 @@ export const generateJobDescription = async (
   }
 };
 ```
-Controller Responsibilities
+
+## Controller Responsibilities
+
 The controller should focus on HTTP concerns:
+
 ``` text
 Request
   ↓
@@ -3075,11 +3963,17 @@ Send events
   ↓
 End response
 ```
+
 The controller does not contain the AI prompt or model configuration.
+
 That separation keeps the architecture clean.
----
-8. Route Layer
-`src/routes/router.ts`
+
+------------------------------------------------------------------------
+
+# 8. Route Layer
+
+## `src/routes/router.ts`
+
 ``` typescript
 import { Router } from "express";
 
@@ -3096,13 +3990,19 @@ router.post(
 
 export default router;
 ```
+
 The endpoint is:
+
 ``` text
 POST /api/job-description
 ```
----
-9. Logger
-`src/utils/logger.ts`
+
+------------------------------------------------------------------------
+
+# 9. Logger
+
+## `src/utils/logger.ts`
+
 ``` typescript
 type LogLevel =
   | "info"
@@ -3143,11 +4043,16 @@ export const logger = {
   ) => log("error", message, meta),
 };
 ```
+
 A dedicated logger gives the application one consistent place for
 logging behavior.
----
-10. Express Application
-`src/app.ts`
+
+------------------------------------------------------------------------
+
+# 10. Express Application
+
+## `src/app.ts`
+
 ``` typescript
 import express from "express";
 
@@ -3161,11 +4066,17 @@ app.use("/api", apiRouter);
 
 export default app;
 ```
+
 `app.ts` creates the Express application but does not start the server.
+
 This separation makes the application easier to test.
----
-11. Server Entry Point
-`src/server.ts`
+
+------------------------------------------------------------------------
+
+# 11. Server Entry Point
+
+## `src/server.ts`
+
 ``` typescript
 import app from "./app.js";
 
@@ -3178,9 +4089,13 @@ app.listen(env.PORT, () => {
   );
 });
 ```
+
 The server entry point is responsible only for starting the HTTP server.
----
-12. Complete Request Flow
+
+------------------------------------------------------------------------
+
+# 12. Complete Request Flow
+
 ``` text
 POST /api/job-description
         ↓
@@ -3214,9 +4129,13 @@ Final structured result
         ↓
 SSE final event → frontend
 ```
----
-13. Why This Is a Sequential Workflow
+
+------------------------------------------------------------------------
+
+# 13. Why This Is a Sequential Workflow
+
 The workflow has a strict dependency:
+
 ``` text
 Generation
     ↓
@@ -3224,19 +4143,29 @@ Complete text
     ↓
 Extraction
 ```
+
 The extraction chain cannot correctly process the generated job
 description until generation is complete.
+
 Therefore:
+
 ``` text
 Step A → Step B
 ```
+
 is correct.
+
 Using parallel execution here would not provide the desired result
 because Step B depends on Step A.
----
-14. Why SSE Is Used
+
+------------------------------------------------------------------------
+
+# 14. Why SSE Is Used
+
 The first AI stage is streamed.
+
 Instead of waiting for the entire job description:
+
 ``` text
 Request
    ↓
@@ -3244,7 +4173,9 @@ Wait
    ↓
 Complete response
 ```
+
 the client receives:
+
 ``` text
 Request
    ↓
@@ -3258,17 +4189,24 @@ Chunk 3
    ↓
 Final structured result
 ```
+
 This improves perceived responsiveness for the user.
----
-15. Final Event Structure
+
+------------------------------------------------------------------------
+
+# 15. Final Event Structure
+
 A streaming chunk looks like:
+
 ``` json
 {
   "type": "chunk",
   "content": "We are looking for..."
 }
 ```
+
 The final event looks like:
+
 ``` json
 {
   "type": "final",
@@ -3282,16 +4220,22 @@ The final event looks like:
   "usage": {}
 }
 ```
+
 An error event looks like:
+
 ``` json
 {
   "type": "error",
   "message": "Something went wrong while generating the job description"
 }
 ```
----
-16. What This Project Teaches
+
+------------------------------------------------------------------------
+
+# 16. What This Project Teaches
+
 This single project connects several earlier lessons:
+
 ``` text
 ChatPromptTemplate
         ↓
@@ -3313,50 +4257,68 @@ Zod schema
         ↓
 Structured result
 ```
+
 This is the bridge from individual LangChain components to real AI
 application workflows.
----
-17. Production Notes
+
+------------------------------------------------------------------------
+
+# 17. Production Notes
+
 For a production version, consider adding:
-Request rate limiting
-Authentication and authorization
-Request size limits
-Timeouts
-Retry and fallback strategies
-Persistent logging
-LangSmith tracing
-Usage and cost tracking
-Model configuration through environment variables
-Request cancellation
-Persistent storage for generated content
-Stronger input validation
-Monitoring and alerting
+
+-   Request rate limiting
+-   Authentication and authorization
+-   Request size limits
+-   Timeouts
+-   Retry and fallback strategies
+-   Persistent logging
+-   LangSmith tracing
+-   Usage and cost tracking
+-   Model configuration through environment variables
+-   Request cancellation
+-   Persistent storage for generated content
+-   Stronger input validation
+-   Monitoring and alerting
+
 The learning implementation keeps these concerns separate so the core
 LangChain workflow remains easy to understand.
----
-Phase 2 --- Chains & Workflows
+
+------------------------------------------------------------------------
+
+# Phase 2 --- Chains & Workflows
+
 > **Goal:** Learn how to combine LangChain components into predictable,
 > parallel, and conditional AI workflows.
+
 Phase 1 introduced individual LangChain building blocks and LCEL. Phase
 2 moves from individual chains to larger workflow design.
----
-Table of Contents --- Phase 2
-Lesson 2.1 --- Sequential, Parallel, Conditional
-Workflows
-1. Simple Explanation
-2. Real-World Analogy
-3. Technical Breakdown
-4. Real Application Usage
-5. Common Mistakes
-6. Production Considerations
-7. Chain vs Agent
-Exercise
-Test Your Understanding
-Current Implementation
----
-Lesson 2.1 --- Sequential, Parallel, Conditional Workflows
-1. Simple Explanation
+
+------------------------------------------------------------------------
+
+# Table of Contents --- Phase 2
+
+-   [Lesson 2.1 --- Sequential, Parallel, Conditional
+    Workflows](#lesson-21--sequential-parallel-conditional-workflows)
+    -   [1. Simple Explanation](#1-simple-explanation)
+    -   [2. Real-World Analogy](#2-real-world-analogy)
+    -   [3. Technical Breakdown](#3-technical-breakdown)
+    -   [4. Real Application Usage](#4-real-application-usage)
+    -   [5. Common Mistakes](#5-common-mistakes)
+    -   [6. Production Considerations](#6-production-considerations)
+    -   [7. Chain vs Agent](#7-chain-vs-agent)
+    -   [Exercise](#exercise)
+    -   [Test Your Understanding](#test-your-understanding)
+    -   [Current Implementation](#current-implementation)
+
+------------------------------------------------------------------------
+
+# Lesson 2.1 --- Sequential, Parallel, Conditional Workflows
+
+## 1. Simple Explanation
+
 The job-description project already contains a sequential workflow:
+
 ``` text
 Generate job description
         ↓
@@ -3364,11 +4326,16 @@ Wait for complete output
         ↓
 Extract structured data
 ```
+
 The extraction step depends on the generated text, so the steps must run
 in order.
+
 There are three major workflow patterns:
-Sequential
+
+### Sequential
+
 Step B depends on Step A.
+
 ``` text
 Step A
   ↓
@@ -3376,15 +4343,21 @@ Step B
   ↓
 Step C
 ```
-Parallel
+
+### Parallel
+
 Independent steps can run at the same time.
+
 ``` text
         ┌──→ Step A ──┐
 Input ──┤             ├──→ Combined Result
         └──→ Step B ──┘
 ```
-Conditional / Branching
+
+### Conditional / Branching
+
 The next step is selected at runtime.
+
 ``` text
 Input
   ↓
@@ -3393,21 +4366,33 @@ Condition
   ├──→ Branch B
   └──→ Default
 ```
+
 Production AI systems commonly combine all three patterns.
----
-2. Real-World Analogy
+
+------------------------------------------------------------------------
+
+# 2. Real-World Analogy
+
 Imagine onboarding a candidate in HireHub.
-Sequential
+
+### Sequential
+
 First verify the candidate's email.
+
 Only after verification:
+
 ``` text
 Email verification
         ↓
 Profile activation
 ```
+
 There is a dependency.
-Parallel
+
+### Parallel
+
 These tasks are independent:
+
 ``` text
 Send welcome email
         │
@@ -3415,9 +4400,13 @@ Send welcome email
         │
 Record analytics event
 ```
+
 They do not need to wait for one another.
-Conditional
+
+### Conditional
+
 Suppose the candidate selects a plan:
+
 ``` text
 Candidate plan
       ↓
@@ -3427,11 +4416,17 @@ Premium    Free
 Premium    Basic
 flow       flow
 ```
+
 The runtime condition determines which path is executed.
----
-3. Technical Breakdown
-A. Sequential Workflows
+
+------------------------------------------------------------------------
+
+# 3. Technical Breakdown
+
+## A. Sequential Workflows
+
 LCEL naturally represents sequential workflows through `.pipe()`.
+
 ``` typescript
 const chain =
   step1Prompt
@@ -3440,8 +4435,11 @@ const chain =
     .pipe(step2Prompt)
     .pipe(model);
 ```
+
 Each stage receives the previous stage's output.
+
 Conceptually:
+
 ``` text
 Input
   ↓
@@ -3451,20 +4449,29 @@ Step 2
   ↓
 Step 3
 ```
-When to Use It
+
+### When to Use It
+
 Use sequential execution when:
+
 ``` text
 Step B requires Step A's output
 ```
+
 The AI job-description generator is a direct example:
+
 ``` text
 Generation
     ↓
 Extraction
 ```
----
-B. Parallel Workflows
+
+------------------------------------------------------------------------
+
+## B. Parallel Workflows
+
 Use `RunnableParallel` when tasks are independent.
+
 ``` typescript
 import {
   RunnableParallel,
@@ -3487,7 +4494,9 @@ const result =
     resumeText: "...",
   });
 ```
+
 The result can look like:
+
 ``` typescript
 {
   skillsExtraction: [...],
@@ -3495,9 +4504,12 @@ The result can look like:
   atsScore: 85
 }
 ```
+
 All three chains use the same resume input but do not depend on each
 other's output.
-Sequential Timing
+
+### Sequential Timing
+
 ``` text
 Chain A
   ↓
@@ -3505,7 +4517,9 @@ Chain B
 
 Total time ≈ timeA + timeB
 ```
-Parallel Timing
+
+### Parallel Timing
+
 ``` text
 Chain A ──┐
           ├──→ Result
@@ -3513,12 +4527,17 @@ Chain B ──┘
 
 Total time ≈ max(timeA, timeB)
 ```
+
 Parallel execution can therefore reduce latency when the tasks are truly
 independent.
----
-C. Conditional / Branching Workflows
+
+------------------------------------------------------------------------
+
+## C. Conditional / Branching Workflows
+
 Use `RunnableBranch` when the runtime condition determines the next
 chain.
+
 ``` typescript
 import {
   RunnableBranch,
@@ -3543,7 +4562,9 @@ const contentAnalysisChain =
     defaultProcessingChain,
   ]);
 ```
+
 Invoke it with:
+
 ``` typescript
 const result =
   await contentAnalysisChain.invoke({
@@ -3551,28 +4572,43 @@ const result =
     content: "...",
   });
 ```
-How `RunnableBranch` Works
+
+### How `RunnableBranch` Works
+
 Each conditional entry contains:
+
 ``` text
 [condition, chain]
 ```
+
 LangChain checks the conditions from top to bottom.
+
 The first matching condition determines the chain that runs.
+
 The final chain is the default/fallback branch.
-HireHub Example
+
+### HireHub Example
+
 A unified content-analysis endpoint could accept:
+
 ``` text
 Resume
 Job Posting
 Other Content
 ```
+
 The application can classify the content and route it to the appropriate
 workflow.
----
-D. Async Execution
+
+------------------------------------------------------------------------
+
+## D. Async Execution
+
 `RunnableParallel` is conceptually similar to running independent
 asynchronous operations concurrently.
+
 For example:
+
 ``` typescript
 const result = await Promise.all([
   taskA(),
@@ -3580,7 +4616,9 @@ const result = await Promise.all([
   taskC(),
 ]);
 ```
+
 The same fundamental backend idea applies:
+
 ``` text
 Independent tasks
       ↓
@@ -3588,12 +4626,19 @@ Concurrent execution
       ↓
 Combined result
 ```
+
 The main requirement is that the tasks must not depend on one another.
----
-E. Error Handling in Workflows
+
+------------------------------------------------------------------------
+
+## E. Error Handling in Workflows
+
 Different workflow types have different failure behavior.
-Sequential
+
+### Sequential
+
 If Step 2 fails:
+
 ``` text
 Step 1
   ↓
@@ -3601,13 +4646,20 @@ Step 2 ❌
   ↓
 Step 3 does not receive Step 2's result
 ```
+
 The chain execution fails unless the application handles the error.
-Parallel
+
+### Parallel
+
 If one branch fails, the overall operation can fail.
+
 If partial results are required, individual branches should be designed
 with their own error handling or fallback behavior.
-Conditional
+
+### Conditional
+
 A default branch should normally be provided.
+
 ``` typescript
 RunnableBranch.from([
   [conditionA, chainA],
@@ -3615,44 +4667,63 @@ RunnableBranch.from([
   defaultChain,
 ]);
 ```
+
 This prevents unmatched input from producing an unexpected
 branch-selection failure.
----
-F. Retries and Fallbacks
+
+------------------------------------------------------------------------
+
+## F. Retries and Fallbacks
+
 LangChain Runnables support fallback and retry patterns.
-Fallback
+
+### Fallback
+
 ``` typescript
 const reliableChain =
   primaryChain.withFallbacks([
     backupChain,
   ]);
 ```
-Retry
+
+### Retry
+
 ``` typescript
 const chainWithRetry =
   myChain.withRetry({
     stopAfterAttempt: 3,
   });
 ```
+
 These are reliability mechanisms.
+
 They do not automatically fix:
-Bad prompts
-Incorrect application logic
-Poor model quality
-Unsafe tool behavior
-Incorrect business rules
+
+-   Bad prompts
+-   Incorrect application logic
+-   Poor model quality
+-   Unsafe tool behavior
+-   Incorrect business rules
+
 More advanced retry strategies such as exponential backoff and circuit
 breakers belong in later production-focused material.
----
-4. Real Application Usage
-Imagine HireHub provides a Complete Resume Analysis feature.
+
+------------------------------------------------------------------------
+
+# 4. Real Application Usage
+
+Imagine HireHub provides a **Complete Resume Analysis** feature.
+
 It needs to:
+
 ``` text
 1. Extract skills
 2. Calculate ATS score
 3. Generate job-match recommendations
 ```
+
 If these operations are independent, they can run in parallel:
+
 ``` text
                  ┌──→ Skills
                  │
@@ -3662,8 +4733,10 @@ Resume ──────────┼──→ ATS Score
                           ↓
                     Final Summary
 ```
+
 The final summary depends on the three results, so the overall workflow
 becomes hybrid:
+
 ``` text
 Parallel analysis
        ↓
@@ -3671,41 +4744,65 @@ Combined results
        ↓
 Sequential final-summary chain
 ```
+
 This hybrid pattern is common in production AI systems.
----
-5. Common Mistakes
-Mistake 1 --- Making independent work sequential
+
+------------------------------------------------------------------------
+
+# 5. Common Mistakes
+
+### Mistake 1 --- Making independent work sequential
+
 If two tasks do not depend on one another, running them one after
 another can unnecessarily increase latency.
-Mistake 2 --- Making dependent work parallel
+
+### Mistake 2 --- Making dependent work parallel
+
 If Task B needs Task A's result, they must remain sequential.
-Mistake 3 --- Forgetting a default branch
+
+### Mistake 3 --- Forgetting a default branch
+
 A conditional workflow should normally have a safe fallback.
-Mistake 4 --- Ignoring branch-level failures
+
+### Mistake 4 --- Ignoring branch-level failures
+
 One failing parallel branch can affect the entire operation. Decide
 whether the application needs:
+
 ``` text
 All-or-nothing result
 ```
+
 or:
+
 ``` text
 Partial results
 ```
+
 before designing the workflow.
-Mistake 5 --- Creating a chain for every tiny operation
+
+### Mistake 5 --- Creating a chain for every tiny operation
+
 Not every LLM call needs a complex LCEL abstraction.
+
 Use chains when they improve:
-Composition
-Readability
-Reuse
-Workflow management
-Streaming
-Testing
----
-6. Production Considerations
-Latency
+
+-   Composition
+-   Readability
+-   Reuse
+-   Workflow management
+-   Streaming
+-   Testing
+
+------------------------------------------------------------------------
+
+# 6. Production Considerations
+
+## Latency
+
 Parallel workflows reduce latency when work is independent, but total
 response time is still limited by the slowest branch.
+
 ``` text
 Branch A = 2 seconds
 Branch B = 5 seconds
@@ -3713,10 +4810,15 @@ Branch C = 3 seconds
 
 Parallel total ≈ 5 seconds
 ```
-Cost
+
+## Cost
+
 Parallel execution can mean several model calls happen concurrently.
+
 That can reduce latency but increase concurrent model usage.
+
 The design should balance:
+
 ``` text
 Latency
 +
@@ -3724,8 +4826,11 @@ Cost
 +
 Concurrency
 ```
-Observability
+
+## Observability
+
 As workflows become larger:
+
 ``` text
 Prompt
   ↓
@@ -3739,11 +4844,16 @@ Tool
   ↓
 Database
 ```
+
 it becomes harder to identify exactly where a failure occurred.
+
 Tracing and observability tools such as LangSmith become important for
 larger workflows.
-Reusability
+
+## Reusability
+
 Organize chains as independent modules:
+
 ``` text
 src/
 └── ai/
@@ -3753,13 +4863,21 @@ src/
         ├── chatbot.chain.ts
         └── jobDescription.chain.ts
 ```
+
 Named chains can then be reused by different services and routes.
----
-7. Chain vs Agent
+
+------------------------------------------------------------------------
+
+# 7. Chain vs Agent
+
 This distinction is extremely important.
-Chain
+
+## Chain
+
 A chain has a predetermined workflow.
+
 The developer decides:
+
 ``` text
 Step 1
   ↓
@@ -3767,18 +4885,26 @@ Step 2
   ↓
 Step 3
 ```
+
 The LLM generates or transforms content inside those steps, but the
 application controls the workflow.
+
 Example:
+
 ``` text
 Generate job description
         ↓
 Extract structured data
 ```
+
 The order is known in advance.
-Agent
+
+## Agent
+
 An agent can dynamically decide what action to take.
+
 Conceptually:
+
 ``` text
 User request
       ↓
@@ -3792,100 +4918,159 @@ Decide next action
       ↓
 Continue or finish
 ```
+
 The exact path is not necessarily known in advance.
-Simple Decision Rule
+
+## Simple Decision Rule
+
 Ask:
+
 > Do I know the exact sequence of steps beforehand?
+
 If yes:
+
 ``` text
 Use a Chain
 ```
+
 If the LLM genuinely needs to decide:
+
 ``` text
 Use an Agent
 ```
-Production Principle
+
+### Production Principle
+
 Prefer chains whenever they are sufficient.
+
 Chains are generally:
-More predictable
-Easier to test
-Easier to debug
-Easier to control
-Often cheaper
+
+-   More predictable
+-   Easier to test
+-   Easier to debug
+-   Easier to control
+-   Often cheaper
+
 Use agents when the task genuinely requires dynamic decision-making.
+
 An agent should not be introduced simply because it looks more advanced.
----
-Exercise
-Exercise 1 --- Sequential Chain
+
+------------------------------------------------------------------------
+
+# Exercise
+
+## Exercise 1 --- Sequential Chain
+
 Take:
+
 ``` typescript
 resumeParseTemplate
 ```
+
 and:
+
 ``` typescript
 structuredModel
 ```
+
 Combine them using:
+
 ``` typescript
 .pipe()
 ```
+
 Then create:
+
 ``` typescript
 getResumeParseData()
 ```
+
 using the resulting chain.
-Exercise 2 --- Parallel Analysis
+
+## Exercise 2 --- Parallel Analysis
+
 Imagine HireHub needs:
+
 ``` text
 A. Extract candidate name and email
 B. Perform detailed skill analysis
 ```
+
 These operations are independent.
+
 Design the conceptual structure using:
+
 ``` typescript
 RunnableParallel
 ```
+
 You can use pseudocode instead of a complete implementation.
-Exercise 3 --- Conditional Analysis
+
+## Exercise 3 --- Conditional Analysis
+
 Design a branch that chooses between:
+
 ``` text
 Resume analysis
 Job posting analysis
 Default content analysis
 ```
+
 using:
+
 ``` typescript
 RunnableBranch
 ```
----
-Test Your Understanding
-Question 1
+
+------------------------------------------------------------------------
+
+# Test Your Understanding
+
+### Question 1
+
 What is the main benefit of the Runnable interface?
+
 Why does a common interface make it easier to combine LangChain
 components?
-Question 2
+
+### Question 2
+
 Why does order matter in:
+
 ``` typescript
 .pipe()
 ```
+
 Give an example where the wrong order produces an incompatible
 input/output flow.
-Question 3
+
+### Question 3
+
 When should you use:
+
 ``` typescript
 RunnableParallel
 ```
+
 and when should you avoid it?
+
 Think about dependencies between tasks.
-Question 4
+
+### Question 4
+
 If:
+
 ``` typescript
 prompt.pipe(model)
 ```
+
 supports `.stream()`, what practical benefit does this provide for a
 chatbot?
-Question 5
+
+### Question 5
+
 Suppose a chain contains:
+
 ``` text
 Step 1
   ↓
@@ -3893,12 +5078,18 @@ Step 2
   ↓
 Step 3
 ```
+
 If Step 2 fails, what happens to Step 3?
+
 How should a production application handle this?
----
-Current Implementation
+
+------------------------------------------------------------------------
+
+# Current Implementation
+
 The resume matching implementation can now be expressed cleanly with
 LCEL:
+
 ``` typescript
 import { ChatGroq } from "@langchain/groq";
 import { z } from "zod";
@@ -3951,23 +5142,31 @@ export async function getResumeParseData(
   });
 }
 ```
+
 The important improvement is that the prompt-to-model relationship is
 defined once:
+
 ``` text
 resumeParseTemplate
         ↓
 structuredModel
 ```
+
 The service only supplies the runtime values:
+
 ``` typescript
 {
   resume,
   jobDescription
 }
 ```
----
-Phase 2 Learning Summary
+
+------------------------------------------------------------------------
+
+# Phase 2 Learning Summary
+
 The workflow progression is:
+
 ``` text
 Individual Runnables
         ↓
@@ -3989,7 +5188,9 @@ Retries + Fallbacks
         ↓
 Production AI Workflows
 ```
+
 The most important design question is always:
+
 ``` text
 Does this step depend on the previous step?
             ↓
@@ -4005,8 +5206,11 @@ Does runtime input determine the next path?
             ↓
         Yes → Conditional
 ```
----
-Overall Phase 1 → Phase 2 Progression
+
+------------------------------------------------------------------------
+
+# Overall Phase 1 → Phase 2 Progression
+
 ``` text
 Raw LLM SDK
       ↓
@@ -4044,5 +5248,1780 @@ Conditional Workflows
       ↓
 Production AI Pipelines
 ```
+
 This progression takes the project from individual model calls to
 composable, predictable AI workflows.
+
+---
+
+# Project 2 — AI Research & Content Pipeline
+
+## 1. Project Overview
+
+This project builds a complete AI content-generation pipeline for a career-advice blog.
+
+The pipeline does not ask one model call to do everything. Instead, it separates the work into specialized stages:
+
+```text
+Topic
+  ↓
+Research
+  ↓
+Outline
+  ↓
+Article Generation
+  ↓
+Review
+  ↓
+Improvement
+  ↓
+Final Article
+```
+
+This is a **sequential workflow** because every stage depends on the result of the previous stage.
+
+For example:
+
+- The outline needs the research notes.
+- The article needs the outline.
+- The review needs the generated article.
+- The improvement stage needs the original article plus the review.
+
+This is exactly the kind of workflow that LCEL and LangChain chains are designed to organize.
+
+---
+
+## 2. What You Will Learn From This Project
+
+This project combines the concepts learned earlier:
+
+- Environment configuration
+- Zod validation
+- Structured output
+- `ChatPromptTemplate`
+- Chat models
+- LCEL `.pipe()`
+- Separate AI chains
+- Sequential workflows
+- Retry handling
+- Logging
+- Service-layer orchestration
+- Express routing
+- Error handling
+- Clean file/folder architecture
+
+The project also demonstrates an important production principle:
+
+> Keep prompts, schemas, chains, business orchestration, HTTP handling, and configuration in separate layers.
+
+---
+
+## 3. Complete Project Architecture
+
+A clean structure for the project is:
+
+```text
+src/
+├── ai/
+│   ├── prompts/
+│   │   └── careerBlog.prompt.ts
+│   │
+│   ├── schemas/
+│   │   └── careerBlog.schema.ts
+│   │
+│   └── chains/
+│       └── careerBlog.chains.ts
+│
+├── config/
+│   └── env.ts
+│
+├── services/
+│   └── careerBlog.service.ts
+│
+├── routes/
+│   └── careerBlogs.ts
+│
+├── utils/
+│   └── logger.ts
+│
+├── app.ts
+└── server.ts
+
+.env
+```
+
+### Responsibility of Each File
+
+| File | Responsibility |
+|---|---|
+| `.env` | Stores environment variables |
+| `src/config/env.ts` | Loads and validates environment variables |
+| `src/utils/logger.ts` | Centralized application logging |
+| `src/ai/prompts/careerBlog.prompt.ts` | Contains all AI prompts |
+| `src/ai/schemas/careerBlog.schema.ts` | Defines structured-output schemas |
+| `src/ai/chains/careerBlog.chains.ts` | Creates reusable LangChain chains |
+| `src/services/careerBlog.service.ts` | Orchestrates the complete workflow |
+| `src/routes/careerBlogs.ts` | Handles the HTTP endpoint |
+| `src/app.ts` | Creates and configures Express |
+| `src/server.ts` | Starts the HTTP server |
+
+The most important separation is:
+
+```text
+Prompt
+  ↓
+Chain
+  ↓
+Service
+  ↓
+Route
+```
+
+The route should not contain the AI workflow itself.
+
+---
+
+# 4. Environment Configuration
+
+## `.env`
+
+```env
+GROQ_API_KEY=your_groq_api_key
+PORT=3000
+```
+
+Do not print the API key to the console.
+
+---
+
+## `src/config/env.ts`
+
+```typescript
+import dotenv from "dotenv";
+import { z } from "zod";
+
+dotenv.config();
+
+const envSchema = z.object({
+  GROQ_API_KEY: z.string().min(1, "GROQ_API_KEY is required"),
+  PORT: z.coerce.number().default(3000),
+});
+
+const parsedEnv = envSchema.safeParse(process.env);
+
+if (!parsedEnv.success) {
+  console.error(
+    "Invalid environment variables:",
+    parsedEnv.error.format(),
+  );
+
+  process.exit(1);
+}
+
+export const env = parsedEnv.data;
+```
+
+### Explanation
+
+This file performs four jobs:
+
+```text
+dotenv
+  ↓
+Load .env
+  ↓
+Zod validation
+  ↓
+Validated env object
+```
+
+Using `z.coerce.number()` means `PORT` can come from `process.env` as a string while the application receives it as a number.
+
+The rest of the application imports:
+
+```typescript
+import { env } from "../config/env.js";
+```
+
+instead of reading `process.env` everywhere.
+
+---
+
+# 5. Logger Layer
+
+## `src/utils/logger.ts`
+
+```typescript
+type LogLevel = "info" | "warn" | "error";
+
+function log(
+  level: LogLevel,
+  message: string,
+  meta?: Record<string, unknown>,
+): void {
+  const timestamp = new Date().toISOString();
+  const metaStr = meta ? JSON.stringify(meta) : "";
+
+  console.log(
+    `[${timestamp}] [${level.toUpperCase()}] ${message} ${metaStr}`,
+  );
+}
+
+export const logger = {
+  info: (message: string, meta?: Record<string, unknown>) =>
+    log("info", message, meta),
+
+  warn: (message: string, meta?: Record<string, unknown>) =>
+    log("warn", message, meta),
+
+  error: (message: string, meta?: Record<string, unknown>) =>
+    log("error", message, meta),
+};
+```
+
+### Why Have a Logger?
+
+Instead of scattering:
+
+```typescript
+console.log(...)
+console.error(...)
+```
+
+throughout the application, the project uses:
+
+```typescript
+logger.info(...)
+logger.warn(...)
+logger.error(...)
+```
+
+This gives the application one place to later add:
+
+- Log formatting
+- File logging
+- Structured logging
+- External log management
+- Request IDs
+- Production observability
+
+---
+
+# 6. Schema Layer
+
+## `src/ai/schemas/careerBlog.schema.ts`
+
+```typescript
+import { z } from "zod";
+
+export const OutlineSchema = z.object({
+  sections: z
+    .array(
+      z.object({
+        heading: z.string(),
+        keyPoints: z.array(z.string()).min(2).max(5),
+      }),
+    )
+    .min(3)
+    .max(5),
+});
+
+export const ReviewSchema = z.object({
+  strengths: z.array(z.string()),
+  weaknesses: z.array(z.string()),
+  suggestions: z.array(z.string()).min(1),
+});
+
+export type Outline = z.infer<typeof OutlineSchema>;
+export type Review = z.infer<typeof ReviewSchema>;
+```
+
+## Why Two Schemas?
+
+There are two structured-output stages.
+
+### Outline
+
+The model must return:
+
+```text
+sections
+  ├── heading
+  └── keyPoints
+```
+
+Each outline contains between 3 and 5 sections, and every section contains between 2 and 5 key points.
+
+### Review
+
+The model must return:
+
+```text
+strengths
+weaknesses
+suggestions
+```
+
+This gives the service predictable data instead of arbitrary text.
+
+---
+
+# 7. Prompt Layer
+
+## `src/ai/prompts/careerBlog.prompt.ts`
+
+All prompts belong in one dedicated module.
+
+```typescript
+import { ChatPromptTemplate } from "@langchain/core/prompts";
+
+export const researchPrompt = ChatPromptTemplate.fromMessages([
+  [
+    "system",
+    `You are a career research analyst.
+
+Given a topic, identify the key angles, important points, and relevant considerations someone writing an in-depth article should cover.
+
+Be thorough but concise.
+
+Output a plain-text list of research ideas, not a full article.`,
+  ],
+  ["human", "Topic: {topic}"],
+]);
+
+export const outlinePrompt = ChatPromptTemplate.fromMessages([
+  [
+    "system",
+    `You are a content strategist.
+
+Based on the research notes provided, create a structured outline for a career-advice blog article.
+
+Each section should have a clear heading and 2-5 key points it should cover.`,
+  ],
+  [
+    "human",
+    "Research notes:\n{researchNotes}\n\nTopic: {topic}",
+  ],
+]);
+
+export const contentPrompt = ChatPromptTemplate.fromMessages([
+  [
+    "system",
+    `You are an expert career blog writer.
+
+Write a complete, engaging blog article based on the provided outline.
+
+Expand each section fully with practical, actionable advice.
+
+Use a professional yet approachable tone.`,
+  ],
+  [
+    "human",
+    "Topic: {topic}\n\nOutline (JSON):\n{outlineJson}",
+  ],
+]);
+
+export const reviewPrompt = ChatPromptTemplate.fromMessages([
+  [
+    "system",
+    `You are a critical editor reviewing a career-advice blog article.
+
+Identify what works well, what is missing or weak, and concrete suggestions to improve the article.`,
+  ],
+  ["human", "Article:\n{articleContent}"],
+]);
+
+export const improvePrompt = ChatPromptTemplate.fromMessages([
+  [
+    "system",
+    `You are an expert editor.
+
+Rewrite the article below to address the specific weaknesses and suggestions provided while preserving its strengths.
+
+Output the complete, final, polished article.`,
+  ],
+  [
+    "human",
+    `Original Article:
+{articleContent}
+
+Weaknesses to address:
+{weaknesses}
+
+Suggestions to apply:
+{suggestions}`,
+  ],
+]);
+```
+
+## Prompt Flow
+
+There are five prompts:
+
+```text
+researchPrompt
+      ↓
+outlinePrompt
+      ↓
+contentPrompt
+      ↓
+reviewPrompt
+      ↓
+improvePrompt
+```
+
+Each prompt has one job.
+
+This makes prompts easier to:
+
+- Modify
+- Test
+- Review
+- Reuse
+- Version
+- Debug
+
+---
+
+# 8. Chain Layer
+
+## `src/ai/chains/careerBlog.chains.ts`
+
+The chain layer connects prompts to models.
+
+```typescript
+import { ChatGroq } from "@langchain/groq";
+
+import {
+  contentPrompt,
+  improvePrompt,
+  outlinePrompt,
+  researchPrompt,
+  reviewPrompt,
+} from "../prompts/careerBlog.prompt.js";
+
+import { env } from "../../config/env.js";
+
+import {
+  OutlineSchema,
+  ReviewSchema,
+} from "../schemas/careerBlog.schema.js";
+
+const creativeModel = new ChatGroq({
+  apiKey: env.GROQ_API_KEY,
+  model: "openai/gpt-oss-120b",
+  temperature: 0.1,
+});
+
+const analyticalModel = new ChatGroq({
+  apiKey: env.GROQ_API_KEY,
+  model: "openai/gpt-oss-20b",
+  temperature: 0.1,
+});
+
+const structuredOutlineModel =
+  analyticalModel.withStructuredOutput(OutlineSchema);
+
+const structuredReviewModel =
+  analyticalModel.withStructuredOutput(ReviewSchema);
+
+export const researchChain =
+  researchPrompt.pipe(creativeModel);
+
+export const outlineChain =
+  outlinePrompt.pipe(structuredOutlineModel);
+
+export const contentChain =
+  contentPrompt.pipe(creativeModel);
+
+export const reviewChain =
+  reviewPrompt
+    .pipe(structuredReviewModel)
+    .withRetry({
+      stopAfterAttempt: 3,
+    });
+
+export const improveChain =
+  improvePrompt.pipe(creativeModel);
+```
+
+---
+
+## Why Two Models?
+
+The project separates the model roles.
+
+### Creative Model
+
+Used for:
+
+```text
+Research
+Content generation
+Article improvement
+```
+
+These tasks require natural-language generation.
+
+### Analytical Model
+
+Used for:
+
+```text
+Outline extraction
+Article review
+```
+
+These tasks benefit from structured, analytical output.
+
+Conceptually:
+
+```text
+                 ┌── Creative Model
+                 │
+Research ────────┤
+                 │
+Content ─────────┤
+                 │
+Improvement ─────┘
+
+                 ┌── Analytical Model
+                 │
+Outline ─────────┤
+                 │
+Review ──────────┘
+```
+
+This is an example of assigning models according to the job they perform.
+
+---
+
+# 9. Understanding `.pipe()`
+
+For example:
+
+```typescript
+const researchChain =
+  researchPrompt.pipe(creativeModel);
+```
+
+means:
+
+```text
+Input
+  ↓
+researchPrompt
+  ↓
+ChatGroq
+  ↓
+AI response
+```
+
+For structured output:
+
+```typescript
+const outlineChain =
+  outlinePrompt.pipe(structuredOutlineModel);
+```
+
+the flow becomes:
+
+```text
+Input
+  ↓
+Outline Prompt
+  ↓
+Analytical Model
+  ↓
+Structured Output
+  ↓
+OutlineSchema
+  ↓
+Typed Outline
+```
+
+This is LCEL composition.
+
+---
+
+# 10. Retry Handling
+
+The review chain uses:
+
+```typescript
+.withRetry({
+  stopAfterAttempt: 3,
+});
+```
+
+The conceptual flow is:
+
+```text
+Review Request
+      ↓
+Attempt 1
+      ↓
+Failure?
+  ├── No → Return result
+  └── Yes
+       ↓
+Attempt 2
+       ↓
+Failure?
+  ├── No → Return result
+  └── Yes
+       ↓
+Attempt 3
+```
+
+Retry is useful for transient failures.
+
+It does not fix:
+
+- A fundamentally bad prompt
+- Incorrect business logic
+- An unavailable provider
+- An unsupported schema
+- A permanently invalid request
+
+---
+
+# 11. Service Layer
+
+## `src/services/careerBlog.service.ts`
+
+The service is the orchestrator.
+
+```typescript
+import {
+  contentChain,
+  improveChain,
+  outlineChain,
+  researchChain,
+  reviewChain,
+} from "../ai/chains/careerBlog.chains.js";
+
+import { logger } from "../utils/logger.js";
+
+export async function generateCareerBlog(
+  topic: string,
+) {
+  try {
+    logger.info("Career blog generation started", {
+      topic,
+    });
+
+    // 1. Research
+    const researchResult =
+      await researchChain.invoke({ topic });
+
+    const researchNotes =
+      String(researchResult.content);
+
+    logger.info("Research complete", {
+      topic,
+    });
+
+    // 2. Outline
+    const outline =
+      await outlineChain.invoke({
+        researchNotes,
+        topic,
+      });
+
+    logger.info("Outline complete", {
+      topic,
+      sectionsCount: outline.sections.length,
+    });
+
+    // 3. Generate article
+    const contentResult =
+      await contentChain.invoke({
+        topic,
+        outlineJson: JSON.stringify(outline),
+      });
+
+    const articleContent =
+      String(contentResult.content);
+
+    logger.info("Content generation complete", {
+      topic,
+    });
+
+    // 4. Review article
+    const review =
+      await reviewChain.invoke({
+        articleContent,
+      });
+
+    logger.info("Review complete", {
+      topic,
+      weaknessesCount: review.weaknesses.length,
+    });
+
+    // 5. Prepare review information for improvement
+    const weaknessesText =
+      review.weaknesses
+        .map((weakness, index) =>
+          `${index + 1}. ${weakness}`,
+        )
+        .join("\n");
+
+    const suggestionsText =
+      review.suggestions
+        .map((suggestion, index) =>
+          `${index + 1}. ${suggestion}`,
+        )
+        .join("\n");
+
+    // 6. Improve article
+    const improvedResult =
+      await improveChain.invoke({
+        articleContent,
+        weaknesses: weaknessesText,
+        suggestions: suggestionsText,
+      });
+
+    const finalArticle =
+      String(improvedResult.content);
+
+    logger.info(
+      "Career blog generation completed",
+      { topic },
+    );
+
+    return {
+      outline,
+      review,
+      finalArticle,
+    };
+  } catch (error) {
+    logger.error(
+      "Career blog generation failed",
+      {
+        topic,
+        error: String(error),
+      },
+    );
+
+    throw new Error(
+      "Career blog generation failed. Please try again.",
+    );
+  }
+}
+```
+
+---
+
+# 12. Why the Service Layer Exists
+
+The route should not contain this:
+
+```text
+Research
+→ Outline
+→ Content
+→ Review
+→ Improve
+```
+
+Instead:
+
+```text
+Route
+  ↓
+Service
+  ↓
+Research Chain
+  ↓
+Outline Chain
+  ↓
+Content Chain
+  ↓
+Review Chain
+  ↓
+Improve Chain
+```
+
+The service owns the **business workflow**.
+
+The route owns the **HTTP request/response**.
+
+This separation makes the system easier to test and maintain.
+
+---
+
+# 13. Complete Service Workflow
+
+The service performs six logical stages.
+
+## Step 1 — Research
+
+```typescript
+const researchResult =
+  await researchChain.invoke({ topic });
+```
+
+Input:
+
+```text
+topic
+```
+
+Output:
+
+```text
+research notes
+```
+
+---
+
+## Step 2 — Create Outline
+
+```typescript
+const outline =
+  await outlineChain.invoke({
+    researchNotes,
+    topic,
+  });
+```
+
+Input:
+
+```text
+Research notes
++
+Topic
+```
+
+Output:
+
+```typescript
+{
+  sections: [
+    {
+      heading: "...",
+      keyPoints: ["...", "..."]
+    }
+  ]
+}
+```
+
+The schema guarantees the expected structure.
+
+---
+
+## Step 3 — Generate Article
+
+```typescript
+const contentResult =
+  await contentChain.invoke({
+    topic,
+    outlineJson: JSON.stringify(outline),
+  });
+```
+
+The structured outline is converted to JSON text because it is being inserted into a prompt.
+
+Output:
+
+```text
+Complete article
+```
+
+---
+
+## Step 4 — Review Article
+
+```typescript
+const review =
+  await reviewChain.invoke({
+    articleContent,
+  });
+```
+
+Output:
+
+```typescript
+{
+  strengths: [],
+  weaknesses: [],
+  suggestions: []
+}
+```
+
+---
+
+## Step 5 — Prepare Review Data
+
+The arrays are converted into readable text:
+
+```text
+1. Weakness one
+2. Weakness two
+3. Weakness three
+```
+
+and:
+
+```text
+1. Suggestion one
+2. Suggestion two
+3. Suggestion three
+```
+
+This text is passed into the improvement prompt.
+
+---
+
+## Step 6 — Improve Article
+
+```typescript
+const improvedResult =
+  await improveChain.invoke({
+    articleContent,
+    weaknesses: weaknessesText,
+    suggestions: suggestionsText,
+  });
+```
+
+Output:
+
+```text
+Final polished article
+```
+
+---
+
+# 14. Complete Pipeline
+
+The entire service can be visualized as:
+
+```text
+                    Topic
+                      ↓
+              ┌───────────────┐
+              │ Research Chain│
+              └───────┬───────┘
+                      ↓
+                Research Notes
+                      ↓
+              ┌───────────────┐
+              │ Outline Chain │
+              └───────┬───────┘
+                      ↓
+                 Structured
+                   Outline
+                      ↓
+              ┌───────────────┐
+              │ Content Chain │
+              └───────┬───────┘
+                      ↓
+                Article Draft
+                      ↓
+              ┌───────────────┐
+              │  Review Chain │
+              └───────┬───────┘
+                      ↓
+               Review Result
+              ↙              ↘
+        Weaknesses       Suggestions
+              \              /
+               \            /
+                ↓          ↓
+              ┌───────────────┐
+              │ Improve Chain │
+              └───────┬───────┘
+                      ↓
+                 Final Article
+```
+
+---
+
+# 15. Why This Is Sequential
+
+This is not a parallel workflow.
+
+Consider:
+
+```text
+Research
+   ↓
+Outline
+```
+
+The outline cannot be created correctly until research is available.
+
+Similarly:
+
+```text
+Outline
+   ↓
+Content
+```
+
+The article depends on the outline.
+
+And:
+
+```text
+Content
+   ↓
+Review
+```
+
+The review cannot happen before the article exists.
+
+Finally:
+
+```text
+Review
+   ↓
+Improve
+```
+
+The improvement stage requires the review.
+
+Therefore:
+
+```text
+A → B → C → D → E
+```
+
+is the correct workflow.
+
+---
+
+# 16. Why This Is a Good Example of LCEL
+
+The chains themselves are small:
+
+```typescript
+researchPrompt.pipe(creativeModel);
+
+outlinePrompt.pipe(structuredOutlineModel);
+
+contentPrompt.pipe(creativeModel);
+
+reviewPrompt
+  .pipe(structuredReviewModel)
+  .withRetry({ stopAfterAttempt: 3 });
+
+improvePrompt.pipe(creativeModel);
+```
+
+The complexity belongs in the **workflow orchestration**, not inside individual chains.
+
+This is an important architecture principle:
+
+> Keep individual chains focused and let the service compose them into the application workflow.
+
+---
+
+# 17. Route Layer
+
+## `src/routes/careerBlogs.ts`
+
+```typescript
+import {
+  Router,
+  type Request,
+  type Response,
+} from "express";
+
+import { generateCareerBlog } from "../services/careerBlog.service.js";
+import { logger } from "../utils/logger.js";
+
+const router = Router();
+
+router.post(
+  "/career-blog",
+  async (req: Request, res: Response) => {
+    const { topic } = req.body;
+
+    if (
+      typeof topic !== "string" ||
+      topic.trim() === ""
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Topic is required and must be a string",
+      });
+    }
+
+    try {
+      const data =
+        await generateCareerBlog(topic.trim());
+
+      logger.info(
+        "Career blog generation successful",
+        {
+          topic: topic.trim(),
+          articleLength:
+            data.finalArticle.length,
+          sectionsCount:
+            data.outline.sections.length,
+        },
+      );
+
+      return res.status(200).json({
+        success: true,
+        message:
+          "Blog creation successful",
+        finalArticle: data.finalArticle,
+        outline: data.outline,
+        review: data.review,
+      });
+    } catch (error) {
+      logger.error(
+        "Career blog request failed",
+        {
+          topic: topic.trim(),
+          error: String(error),
+        },
+      );
+
+      return res.status(500).json({
+        success: false,
+        message: "Internal server error",
+      });
+    }
+  },
+);
+
+export default router;
+```
+
+---
+
+# 18. Route Responsibilities
+
+The route performs only HTTP-level work:
+
+```text
+Receive request
+      ↓
+Validate topic
+      ↓
+Call service
+      ↓
+Return JSON response
+```
+
+It does not know how research, outline generation, review, or improvement works.
+
+That knowledge belongs to the service and chain layers.
+
+---
+
+# 19. Express Application
+
+## `src/app.ts`
+
+```typescript
+import express from "express";
+
+import careerBlogRoutes from "./routes/careerBlogs.js";
+
+const app = express();
+
+app.use(express.json());
+
+app.use(
+  "/api",
+  careerBlogRoutes,
+);
+
+export default app;
+```
+
+This creates the Express application and mounts the route.
+
+The resulting endpoint is:
+
+```text
+POST /api/career-blog
+```
+
+---
+
+# 20. Server Entry Point
+
+## `src/server.ts`
+
+```typescript
+import app from "./app.js";
+
+import { env } from "./config/env.js";
+import { logger } from "./utils/logger.js";
+
+app.listen(
+  env.PORT,
+  () => {
+    logger.info(
+      `Server is running at http://localhost:${env.PORT}`,
+    );
+  },
+);
+```
+
+The server entry point is responsible for starting the application.
+
+---
+
+# 21. Complete HTTP Request Flow
+
+The complete request travels through:
+
+```text
+POST /api/career-blog
+        ↓
+careerBlogs.ts
+        ↓
+Validate topic
+        ↓
+careerBlog.service.ts
+        ↓
+researchChain
+        ↓
+outlineChain
+        ↓
+contentChain
+        ↓
+reviewChain
+        ↓
+improveChain
+        ↓
+Final article
+        ↓
+JSON response
+        ↓
+Frontend
+```
+
+---
+
+# 22. Example Request
+
+```http
+POST /api/career-blog
+Content-Type: application/json
+```
+
+Body:
+
+```json
+{
+  "topic": "How to become a backend developer in 2026"
+}
+```
+
+The server then executes:
+
+```text
+Topic
+ ↓
+Research
+ ↓
+Outline
+ ↓
+Article
+ ↓
+Review
+ ↓
+Improvement
+ ↓
+Final Article
+```
+
+---
+
+# 23. Example Response
+
+```json
+{
+  "success": true,
+  "message": "Blog creation successful",
+  "finalArticle": "Complete polished article...",
+  "outline": {
+    "sections": [
+      {
+        "heading": "Introduction",
+        "keyPoints": [
+          "Why backend development matters",
+          "What modern backend developers need"
+        ]
+      }
+    ]
+  },
+  "review": {
+    "strengths": [
+      "Clear structure"
+    ],
+    "weaknesses": [
+      "More practical examples are needed"
+    ],
+    "suggestions": [
+      "Add project-based examples"
+    ]
+  }
+}
+```
+
+---
+
+# 24. Error Flow
+
+If any stage fails:
+
+```text
+Chain fails
+   ↓
+Service catch block
+   ↓
+Log error
+   ↓
+Throw application error
+   ↓
+Route catch block
+   ↓
+HTTP 500
+```
+
+The user receives a safe response instead of internal model/provider details.
+
+---
+
+# 25. Why We Do Not Use `RunnableParallel` Here
+
+It may be tempting to parallelize everything.
+
+For example:
+
+```text
+Research ──┐
+           ├── Content
+Outline ───┘
+```
+
+But that does not work because content generation needs the outline, and the outline needs research.
+
+The dependency graph is:
+
+```text
+Research
+   ↓
+Outline
+   ↓
+Content
+   ↓
+Review
+   ↓
+Improve
+```
+
+Parallel execution is appropriate only when two tasks are independent.
+
+For example:
+
+```text
+Resume
+  ├──→ Skill Analysis
+  └──→ Experience Summary
+```
+
+Those tasks can potentially run with `RunnableParallel`.
+
+---
+
+# 26. Where `RunnableParallel` Could Be Added Later
+
+A future version could perform independent research tasks:
+
+```text
+                    Topic
+                      ↓
+               RunnableParallel
+                 ↙          ↘
+        Skill Research   Market Research
+                 \          /
+                  \        /
+                   ↓      ↓
+                  Combined Research
+                         ↓
+                      Outline
+```
+
+The important question is always:
+
+> Does this task depend on the result of another task?
+
+If **yes**, use sequential execution.
+
+If **no**, consider parallel execution.
+
+---
+
+# 27. Why Structured Output Is Used for Outline and Review
+
+Research and article writing naturally produce text.
+
+Therefore:
+
+```text
+Research → plain text
+Content → plain text
+Improvement → plain text
+```
+
+Outline and review have predictable structures.
+
+Therefore:
+
+```text
+Outline → Zod structured output
+Review → Zod structured output
+```
+
+This gives the application predictable data at important workflow boundaries.
+
+---
+
+# 28. Model Responsibility
+
+The architecture separates models by responsibility:
+
+```text
+Creative Model
+├── Research
+├── Content
+└── Improvement
+
+Analytical Model
+├── Outline
+└── Review
+```
+
+This is not mandatory. It is an architectural choice.
+
+A production system should evaluate models based on:
+
+- Output quality
+- Latency
+- Cost
+- Context window
+- Structured-output support
+- Reliability
+- Rate limits
+
+---
+
+# 29. Production Improvements
+
+The learning implementation is intentionally simple.
+
+A production version could add:
+
+### Input
+
+- Stronger request validation
+- Maximum topic length
+- Authentication
+- Rate limiting
+
+### AI Reliability
+
+- Timeouts
+- Retries
+- Model fallbacks
+- Provider fallback
+- Request cancellation
+
+### Observability
+
+- Request IDs
+- LangSmith tracing
+- Token usage
+- Cost tracking
+- Latency metrics
+- Structured logs
+
+### Persistence
+
+Store:
+
+```text
+topic
+research
+outline
+article draft
+review
+final article
+timestamps
+model information
+usage information
+```
+
+A database such as MongoDB or PostgreSQL could be used.
+
+### Performance
+
+Possible improvements include:
+
+- Parallel independent research tasks
+- Caching
+- Smaller models for simple stages
+- Streaming where appropriate
+- Queue-based background generation for long workflows
+
+---
+
+# 30. Final Architecture
+
+The complete application can now be understood as five layers:
+
+```text
+                 HTTP Layer
+                     ↓
+                  Routes
+                     ↓
+               Service Layer
+                     ↓
+              AI Workflow Layer
+                     ↓
+       Prompts + Models + Schemas
+                     ↓
+             External LLM Provider
+```
+
+More concretely:
+
+```text
+Client
+  ↓
+Express Route
+  ↓
+Career Blog Service
+  ↓
+┌─────────────────────────────────┐
+│ Research Chain                  │
+│        ↓                        │
+│ Outline Chain                   │
+│        ↓                        │
+│ Content Chain                   │
+│        ↓                        │
+│ Review Chain                    │
+│        ↓                        │
+│ Improve Chain                   │
+└─────────────────────────────────┘
+  ↓
+Final Article
+```
+
+---
+
+# 31. What This Project Teaches
+
+This project is the next step after learning individual LangChain components.
+
+You are moving from:
+
+```text
+Calling an LLM
+```
+
+to:
+
+```text
+Designing an AI system
+```
+
+The progression is:
+
+```text
+Raw LLM SDK
+      ↓
+LangChain Model
+      ↓
+Messages
+      ↓
+Prompt Templates
+      ↓
+Structured Output
+      ↓
+Runnables
+      ↓
+LCEL
+      ↓
+Reusable Chains
+      ↓
+Sequential Workflows
+      ↓
+Parallel Workflows
+      ↓
+Conditional Workflows
+      ↓
+Retries + Fallbacks
+      ↓
+Production AI Pipelines
+```
+
+---
+
+# 32. Final Mental Model
+
+When designing any LangChain application, think in this order:
+
+### 1. What is the input?
+
+```text
+Topic
+Resume
+Job Description
+User Message
+```
+
+### 2. What should the model produce?
+
+```text
+Text
+Structured Object
+Classification
+Analysis
+```
+
+### 3. Does the output need validation?
+
+If yes:
+
+```text
+Zod
++
+withStructuredOutput()
+```
+
+### 4. Is the workflow predetermined?
+
+If yes:
+
+```text
+Chain
+```
+
+### 5. Do later steps depend on earlier steps?
+
+If yes:
+
+```text
+Sequential
+```
+
+### 6. Are tasks independent?
+
+If yes:
+
+```text
+RunnableParallel
+```
+
+### 7. Does runtime input determine the next path?
+
+If yes:
+
+```text
+RunnableBranch
+```
+
+### 8. Can a transient failure happen?
+
+If yes:
+
+```text
+Retry / Fallback
+```
+
+### 9. Does the workflow need monitoring?
+
+If yes:
+
+```text
+Logging
++
+Tracing
++
+Usage tracking
+```
+
+This mental model is more important than memorizing individual LangChain APIs.
+
+---
+
+# 33. Final Project Checklist
+
+- [ ] Environment variables validated with Zod
+- [ ] API keys kept outside source code
+- [ ] Prompts separated from business logic
+- [ ] Schemas separated from prompts
+- [ ] Chains separated from services
+- [ ] Service owns workflow orchestration
+- [ ] Route owns HTTP handling
+- [ ] Structured output used where predictable objects are required
+- [ ] Retry added where transient failure is reasonable
+- [ ] Errors logged centrally
+- [ ] Sequential dependencies kept sequential
+- [ ] Independent work identified for possible parallelization
+- [ ] Production persistence considered
+- [ ] Usage, cost, latency, and tracing considered
+
+---
+
+# 34. Project Progression
+
+You now have three increasingly advanced examples:
+
+```text
+Project 0
+Raw Groq Chatbot
+      ↓
+Understand direct LLM calls
+
+Phase 1
+LangChain Chatbot
+      ↓
+Understand LangChain abstractions
+
+Project 1
+AI Job Description Generator
+      ↓
+Understand sequential chains + structured output + SSE
+
+Project 2
+AI Research & Content Pipeline
+      ↓
+Understand multi-stage AI workflow orchestration
+```
+
+The next natural LangChain topics after this pipeline are:
+
+```text
+Retrievers
+   ↓
+Embeddings
+   ↓
+Vector Stores
+   ↓
+RAG
+   ↓
+Tools
+   ↓
+Tool Calling
+   ↓
+Agents
+   ↓
+Memory / Persistence
+   ↓
+LangGraph
+   ↓
+Production Observability
+```

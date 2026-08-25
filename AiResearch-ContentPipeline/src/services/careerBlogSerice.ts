@@ -10,13 +10,13 @@ import { logger } from "../utils/logger.js";
 export async function genrateCareerBlog(topic: string) {
   try {
     logger.info("Career blog generation started", { topic });
-    const researchResult = await researchChain.invoke(topic);
-    const reasearchNotes = researchResult.content as string;
+    const researchResult = await researchChain.invoke({ topic });
+    const researchNotes = researchResult.content as string;
     logger.info("Research complete", { topic });
-    const outline = await outlineChain.invoke({ reasearchNotes, topic });
+    const outline = await outlineChain.invoke({ researchNotes, topic });
     logger.info("Outline complete", {
       topic,
-      sectionsCount: outline.section.length,
+      sectionsCount: outline.sections.length,
     });
     const contentResult = await contentChain.invoke({
       topic,
@@ -50,7 +50,10 @@ export async function genrateCareerBlog(topic: string) {
       finalArticle,
     };
   } catch (error) {
-    logger.error("Research step failed", { topic, error });
-    throw new Error("Failed at research step");
+    logger.error("Career blog generation failed", {
+      topic,
+      error: String(error),
+    });
+    throw new Error("Career blog generation failed. Please try again.");
   }
 }

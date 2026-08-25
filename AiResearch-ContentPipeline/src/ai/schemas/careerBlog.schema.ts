@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 export const OutlineSchema = z.object({
-  section: z
+  sections: z
     .array(
       z.object({
         heading: z.string(),
