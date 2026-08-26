@@ -1,4 +1,3 @@
-import express from "express";
 import { GoogleGenerativeAIEmbeddings } from "@langchain/google-genai";
 import { env } from "./src/config/env";
 
