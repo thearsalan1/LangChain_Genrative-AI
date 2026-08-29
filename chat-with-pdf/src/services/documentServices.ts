@@ -6,8 +6,8 @@ import { PDFLoader } from "@langchain/community/document_loaders/fs/pdf";
 import { prisma } from "../config/db.js";
 
 const embeddings = new GoogleGenerativeAIEmbeddings({
-  apiKey: env.GEMINI_API_KEY,
-  model: "text-embedding-004",
+  apiKey: env.GEMINI_API,
+  model: "text-embedding-001",
 });
 
 const splitter = new RecursiveCharacterTextSplitter({
@@ -33,6 +33,9 @@ export async function processDocument(
 
   const chunkTexts = chunks.map((chunk) => chunk.pageContent);
   const vectors = await embeddings.embedDocuments(chunkTexts);
+  console.log("Vectors count:", vectors.length);
+  console.log("First vector length:", vectors[0]?.length);
+  console.log("First vector sample:", vectors[0]?.slice(0, 5));
   for (let i = 0; i < chunks.length; i++) {
     await prisma.$executeRaw`
     INSERT INTO "Chunk" (id, "documentId", content, "pageNumber", embedding)
