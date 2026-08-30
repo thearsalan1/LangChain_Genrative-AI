@@ -1,5 +1,0 @@
-// test-prisma.ts (project root mein banaओ, temporary)
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
-console.log("Prisma Client loaded successfully!");
